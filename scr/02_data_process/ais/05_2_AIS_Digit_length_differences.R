@@ -88,16 +88,17 @@ ggplot(length_diff, aes(x = difference)) +
 # 5.2) Difference of length between pairs of ships -----------------------------
 #      identified by AIS and satellite              ----------------------------
 
+# Note: select pairs of vessel identified by methods
 
-# Select pairs of vessel identified by methods
-
-# Load AIS boat position interpolated and satellite vessels
-ais <- read.csv("data/output/ais_scenes_interpolated.csv")
-sat <- read.csv("data/output/shipProc.csv", sep = ";")
 
 # load scene info
+df_gpkg <- st_read("data/output/scene_data.gpkg")
+# extracts ids
+ids <- unique(df_gpkg$img_ID)
 
-# ids <-  
+# load AIS boat position interpolated and satellite vessels
+ais <- read.csv("data/output/ais_scenes_interpolated.csv")
+sat <- read.csv("data/output/shipProc.csv", sep = ";")
 
 # prepare satellite data for fishing effort analysis
 sat <- sat %>% 
@@ -105,11 +106,55 @@ sat <- sat %>%
   filter(navigationStatus != "navigating") %>%  
   filter(lowCertainty == FALSE)   
 
+# select variables of interest
+sat <- sat %>% select(item_id, shipType, longitude, latitude, length_m)
+ais <- ais %>% select(img_ID, mmsi, type, longitude, latitude, length)
 
-# Filter by data by scene ID
+# add id to each vessel digitizalied into the different scenes
+sat$shipID <- seq_along(sat$item_ID) ############## IMPORTANT ID SHIP
 
-# get centroid of digitalization
-cent <- st_centroid(ships)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# convert to sf object for further spatial analysis
+sat <- st_as_sf(sat, coords = c("longitude", "latitude"), crs = st_crs(df_gpkg))
+ais <- st_as_sf(ais, coords = c("longitude", "latitude"), crs = st_crs(df_gpkg))
+
+
+
+
+
+# for (id in 1:length(ids)]) {
+id <- ids[1]
+
+# Filter ais and satellite boat position by scene ID
+ais_s <- ais %>% filter(img_ID == id)
+sat_s <- sat %>% filter(item_id == id)
+
+ # combien df 
 
 # identify nearest ship centroid
 nearest <- st_nearest_feature(cent)
@@ -180,7 +225,7 @@ for (folder in folders) {
   # Union ship of different files into same sf objetct
   ships <- do.call(rbind, ships)
   # add number id to ships
-  ships$shipID <- seq_along(ships$imageID)
+  ships$shipID <- seq_along(ships$imageID) ############## IMPORTANT ID SHIP
   
   ###  2.1) intersect (matches)
   intersections <- st_intersects(ships)
