@@ -1,9 +1,14 @@
 # ---------------------------------------------------------------------------
-# 05 - AIS and satellite difference statistics analysis
+# 05 - AIS and satellite statistics differences analysis
 # ----------------------------------------------------------------------
+
+# 5.2) Differencse of length between pairs of ships identified by AIS and satellite
+
+
 
 library(dplyr)
 library(tidyr)
+library(ggplot2)
 
 ais <- read.csv("data/output/ais_scenes_interpolated.csv")
 # filter ships with lenght == 0
@@ -16,9 +21,6 @@ ships <- ships %>% filter(duplicated == "FALSE") # filter ships duplicated
 # values min-max lengt
 sat_length <- range(ships$length_m)
 ais_length <- range(ais$length)
-print(sat_length)
-print(ais_length)
-
 
 # extract info and combien df
 ais <- ais %>% select(img_ID, length)
@@ -34,6 +36,8 @@ df <- rbind(ais,ships)
 df$length <- as.numeric(df$length)
 df$method <- as.factor(df$method)
 
+# ------------------------------------------------------------------------------
+# 5.1) Statistics differences in total results obtanied
 
 # Prepare data for analysis
 df <- df %>% group_by(img_ID, method) %>%
@@ -46,32 +50,27 @@ df_wide <- df %>%
 
 # using only image with data for both method...
 df_wide <- na.omit(df_wide) 
-# in total 93 images in wich are data from AIS and Satellite method# t-student for length by digitilizer
-# of 174 scenes with ships digitalized
 
-
-t_test_length <- t.test(df_wide$length_ais, df_wide$length_sat, paired = TRUE)
+# Welch’s t-test (var.equal in fuction ->)
+t_test_length <- t.test(df_wide$length_ais, df_wide$length_sat, paired = TRUE, var.equal = FALSE)
 print(t_test_length)
 
 
-# of 174 scenes with ships digitalized
+# Differenece between number of vessel identified by method per scene
 t_test_length <- t.test(df_wide$n_ais, df_wide$n_sat, paired = TRUE)
 print(t_test_length)
-
-
-
-
+# Note: t = -9.2938, df = 129, p-value = 4.802e-16
 
 
 
 # Potential plot
-# Crear un dataframe para las diferencias
+# df from differences
 length_diff <- data.frame(
   difference = df_wide$length_ais - df_wide$length_sat
 )
 
 
-# Crear el gráfico
+# Plot
 ggplot(length_diff, aes(x = difference)) +
   geom_histogram(binwidth = 1, color = "black", fill = "blue", alpha = 0.7) +
   labs(
@@ -80,5 +79,16 @@ ggplot(length_diff, aes(x = difference)) +
     y = "Frecuencia"
   ) +
   theme_minimal()
+
+
+
+
+
+
+
+
+
+
+
 
 

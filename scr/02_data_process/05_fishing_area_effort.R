@@ -17,7 +17,7 @@
 #     - Navigating (speed or status AI)
 #     - Duplicated
 #     - LowCertainty
-#  Spatial filtering; NO ships in potencia fishing area (fa):
+#  Spatial filtering; NO ships in potential fishing area (fa):
 #     - Non-take area
 #     - Buffer 200 m coast
 #     - Posidonia cover
@@ -65,15 +65,13 @@ fa <- st_difference(fa, b200)
 fa <- st_difference(fa, posidonia)
 
 st_write(fa, "data/gis/fa/fishing_area.gpkg", append = FALSE)
-st_area(fa) # = 6.980401 Km2 of potential fishing area of raor
-
+st_area(fa) 
+# = 7.69 Km2 of potential fishing area of razorfish
+(st_area(fa)/st_area(sa))*100
+# 41.77% of the study area correspond to a potential area of fishing razorfish
 
 fa <- st_read("data/gis/fa/fishing_area.gpkg")
 st_crs(fa) <- st_crs(mpa)
-
-
-
-
 
 
 
@@ -82,6 +80,16 @@ st_crs(fa) <- st_crs(mpa)
 
 # year of study ----------------
 years <- 2016:2023
+
+
+# extension of study area (bounding box)
+ext <- st_bbox(sa)
+
+# coordinates max min
+y_max <- st_bbox(ext)["ymax"] 
+y_min <- st_bbox(ext)["ymin"] 
+x_max <- st_bbox(ext)["xmax"] 
+x_min <- st_bbox(ext)["xmin"] 
 
 # Create a raster layer for fishing effort == potential fishing ships / area ---
 # 50 m of resolution
@@ -96,35 +104,31 @@ r[r>0] <- 50  # 50m2 of area
 
 
 # load and prepare data ---------
-# Note*: load instrument data and run step 1.44) Fishing effort process
+# Note*: load instrument data and run step 1.3) Fishing effort process
 
-# 1.1) Satellite data
+# 1.1) Satellite data -----------------------------------------------------
 method <- "satellite"
-df <- read.csv("data/output/shipProc.csv")  # 4847 total
+df <- read.csv("data/output/shipProc.csv", sep = ";")  # 4847 total
 # create day variable in data
 df$day <- format(as.Date(df$acquired), "%Y-%m-%d")
 
 # prepare satellite data for fishing effort analysis
 df <- df %>% 
-  filter(duplicated == FALSE) %>%   # 4446
-  filter(navigationStatus == "anchor") %>%  # 3867
-  filter(lowCertainty == FALSE)   # 3830
+  filter(duplicated == FALSE) %>%   
+  filter(navigationStatus == "anchor") %>%  
+  filter(lowCertainty == FALSE)   
 
 
-# 1.2) AIS data
+# 1.2) AIS data ----------------------------------------------------------
 method <- "ais"
 df <- read.csv("data/output/ais_scenes_interpolated.csv")  # 4847 total
 # create day variable in data
 df$day <- format(as.Date(df$timestamp), "%Y-%m-%d")
 
 
-# 1.3) Fixed Camera
-method <- "fixed_camera"
-df <- read.csv("data/imedea/data.csv") #****#######################################################################################################
 
 
-
-# 1.4) Fishing effort process --------------------------------------------------
+# 1.3) Fishing effort process --------------------------------------------------
 
 # empty df
 fishing_effort <- data.frame(day = numeric(),
@@ -226,7 +230,9 @@ for (y in 1:length(years)) {
   }
 }
 
-Sys.time() - t
+Sys.time() - t  
+# Note: X min for Satellite 12 min
+# Note: X min for AIS data
 
 # specify method/instrument
 fishing_effort$method <- method

@@ -25,7 +25,6 @@
 library(sf)
 library(dplyr)
 library(move)
-library(moveVis)
 library(data.table)
 
 library(foreach)
@@ -33,7 +32,7 @@ library(doParallel)
 
 # load data -------------------------------------------------------------------
 
-# AIS (previously filtered into daily basis for bbox of study area)
+# AIS (previously filtered for bbox of study area based on days of the unique timestamps scenes)
 ais <- read.csv("data/ais/aisRaw.csv")
 # remove column grt and dwt
 ais <- subset(ais, select = -c(grt, dwt))
@@ -52,11 +51,10 @@ ais$timestamp <- as.POSIXct(ais$timestamp)
 
 
 
-
 # Filter AIS data and interpolate position at scene acquired timestamp --------
 
 # cluster
-cores <- detectCores() # detectCores()
+cores <- detectCores() * 0.9
 cl <- makeCluster(cores)
 registerDoParallel(cl)
 
@@ -147,8 +145,18 @@ ais_result <- rbindlist(foreach(l = 1:nrow(df_gpkg), .packages = c("sf", "dplyr"
       else {
         # Different position -> Interpolation
         
-        # interpolation 
-        ais_interp <- interpolateTime(m, time=as.difftime(1, units= "secs"), spaceMethod='euclidean')
+        # interpolation by each second
+        # ais_interp <- interpolateTime(m, time=as.difftime(1, units= "secs"), spaceMethod='euclidean')
+        
+        # check if min of timstamps of move object is higher than the scene timestamp
+        # T == NO Interpolation
+        # F == Interpolation
+        if (tstamp < min(m@timestamps) || tstamp > max(m@timestamps))
+          next
+        
+        # interpolation by unique scene timestamp
+        ts <- as.POSIXct(tstamp,  format="%Y-%m-%d %H:%M:%S")
+        ais_interp <- interpolateTime(m, time=ts, spaceMethod='euclidean')
         
         # convert positions into dataframe
         p <- as(ais_interp, "data.frame")
@@ -185,7 +193,7 @@ ais_result <- rbindlist(foreach(l = 1:nrow(df_gpkg), .packages = c("sf", "dplyr"
     # filter ships using acquired time scene
     # remove ships with >= acquired time scene
     # a) note: select only ships (or position) before the scene capture
-    ship_scene <- ship_scene |> filter(timestamp <= tstamp)
+    # ship_scene <- ship_scene |> filter(timestamp <= tstamp)
     
     # b) note: select only ship position at the same acquire time 
     #       OR ships with no movement or interpolation present before the scene capture
@@ -216,8 +224,8 @@ ais_result <- rbindlist(foreach(l = 1:nrow(df_gpkg), .packages = c("sf", "dplyr"
 }, fill = TRUE)
 
 
-t - Sys.time()  # ≈ 7 min
-
+Sys.time() - t  # ≈ 1.30 min
+stopCluster()
 
 # process result ------
 
@@ -230,7 +238,6 @@ ais_result <- ais_result[, c("longitude", "latitude") := tstrsplit(gsub("[c()]",
 ais_result <- subset(ais_result, select = -geom)
 
 # clean potenial duplicateds
-ais_result <- read.csv("data/output/ais_scenes_interpolated.csv")
 ais_result <- unique(ais_result)
 
 # save / export
