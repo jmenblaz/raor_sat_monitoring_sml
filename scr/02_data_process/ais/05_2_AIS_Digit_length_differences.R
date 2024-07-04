@@ -3,32 +3,39 @@
 # ----------------------------------------------------------------------
 
 # 5.2) Differences of length between pairs of ships identified by AIS and satellite
+ 
+#      1) Select pairs of vessel identified by methods
+#      2) Statistical analysis of differences (t-test)
 
-#      Select pairs of vessel identified by methods
+
 
 library(sf)
 library(dplyr)
 library(tidyr)
-library(ggplot2)
 
+# for testing
+# id <- ids[210]
+#id <- "20200909_101620_0f28"
 
 
 
 # load scene info
 df_gpkg <- st_read("data/output/scene_data.gpkg")
-# extracts ids
-ids <- unique(df_gpkg$img_ID)
+
 
 # load AIS boat position interpolated and satellite vessels
 ais <- read.csv("data/output/ais_scenes_interpolated.csv")
 sat <- read.csv("data/output/shipProc.csv", sep = ";")
 
+# extract scene IDs with AIS data
+ids <- unique(ais$img_ID)
 # prepare ais data: filter ships with lenght == 0
 ais <- ais %>% filter(length != 0)
 
 # prepare satellite data
-sat <- sat %>% 
-  filter(duplicated == FALSE) %>%   
+sat <- sat %>%
+  # Note: not filter duplicateds due we work by scene
+  # filter(duplicated == FALSE) %>%   
   filter(navigationStatus != "navigating") %>%  
   filter(lowCertainty == FALSE)   
 
@@ -40,7 +47,7 @@ ais <- ais %>% select(img_ID, type, longitude, latitude, length)
 sat$method <- "satellite"
 ais$method <- "ais"
 
-# stadanrized fields names between databases
+# standardized fields names between databases
 sat <- sat %>%
   rename(length = length_m,
          type = shipType,
@@ -62,7 +69,7 @@ pairs <- data.frame(img_ID = character(),
 
 t <- Sys.time()
 
-for (id in 1:length(ids)) {
+for (id in ids) {
 
   # Filter ais and satellite boat position by scene ID
   ais_s <- ais %>% filter(img_ID == id)
@@ -83,46 +90,61 @@ for (id in 1:length(ids)) {
   
   # extract ais position and its nearest satellite ship
   df_ais <- df %>% filter(method == "ais")
-  # extract df index of nearst satellite based ship position
-  ships_sat_index <- df_ais$near_shipIndex
-  
+
   ## for each satellite-ais pair identified ---------------------------------
-  
-    for (index in ships_sat_index) {
-      # extract satellite ship position by df index identified
+    for (r in 1:nrow(df_ais)) {
+      # filter by each AIS boat
+      ais_ship <- df_ais[r,]
+      # extract nearest boat
+      index <- ais_ship$near_shipIndex
+      # extract nearest boat position (and info) by df index identified
       sat_ship <- df[index,]
-      # extract ais pair by index identified
-      ais_index <- sat_ship$near_shipIndex
-      ais_ship <- df_ais[ais_index,]
       # df of pair position data
       pair_r <- data.frame(img_ID = ais_ship$img_ID,
                            ais_length = ais_ship$length,
                            sat_length = sat_ship$length,
                            ais_type = ais_ship$type,
-                           sat_type = sat_ship$type)
-      # append to df
+                           sat_type = sat_ship$type,
+                           # for check that the pairs are correctly made 
+                           # between AIS-Satellite
+                           ais_method = ais_ship$method,
+                           sat_method = sat_ship$method)
+      # append to empty df of results
       pairs <- rbind(pairs, pair_r)
     }
 }
 
-Sys.time() - t
+Sys.time() - t # 1 min aprox.
 
+# save pairs results
 
+#' There are some scenes in which 
+#' 1- The nearest boat to AIS position it other AIS position
+#' 2- Scenes with AIS interpolated position but not Satellite digitization
+#'    only one case: scene ID: 20200909_101620_0f28
 
+# AIS - AIS cases
+pairs_ais_ais <- pairs %>% filter(ais_method == "ais" & sat_method == "ais")
+# AIS - Satellite cases
+pairs <- pairs %>% filter(ais_method == "ais" & sat_method == "satellite")
 
+# export / save csv
+write.csv(pairs,"data/output/ais/length_ais_sat_pairs.csv", row.names = FALSE)
+# export / save csv
+write.csv(pairs_ais_ais,"data/output/ais/length_ais_ais_pairs.csv", row.names = FALSE)
 
 
 
 
 # -----------------------------------------------------------------------------
-# Statistica
+# Statistics
 
 # t-student???
 
-# Differenece between number of vessel identified by method per scene
+# Differences between number of vessel identified by method per scene
 t_test <- t.test(pairs$ais_length, pairs$sat_length, paired = TRUE)
 print(t_test)
-# Note: t = -9.2938, df = 129, p-value = 4.802e-16
+# Note: t = -1.2485, df = 369, p-value = 0.2126
 
 
 
