@@ -12,6 +12,7 @@
 library(sf)
 library(dplyr)
 library(tidyr)
+library(ggplot2)
 
 # for testing
 # id <- ids[210]
@@ -105,6 +106,7 @@ for (id in ids) {
                            sat_length = sat_ship$length,
                            ais_type = ais_ship$type,
                            sat_type = sat_ship$type,
+                           dist = ais_ship$dist,
                            # for check that the pairs are correctly made 
                            # between AIS-Satellite
                            ais_method = ais_ship$method,
@@ -147,11 +149,21 @@ print(t_test)
 # Note: t = -1.2485, df = 369, p-value = 0.2126
 
 
+pairs$dist <- as.numeric(pairs$dist)
+
+pairs <- pairs %>% filter(dist <= 75)
 
 
+pearson_corr <- cor(pairs$ais_length, pairs$sat_length, method = "pearson")
 
-
-
-
+ggplot(pairs, aes(x = sat_length, y = ais_length)) +
+  geom_point() +
+  labs(title = "Scatter Plot of AIS Length vs Sat Length",
+       x = "Sat Length",
+       y = "AIS Length") +
+  ylim(0, 100) +
+  theme_minimal() +
+  stat_smooth(method = "lm", col = "red") +  # Añadir la línea de tendencia
+  annotate("text", x = max(pairs$sat_length), y = 90, label = paste("Pearson: ", round(pearson_corr, 2)), hjust = 1)
 
 
