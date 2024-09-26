@@ -31,6 +31,7 @@ mpa  <- read_sf("data/gis/mpa/mpapb.gpkg")
 notake_area <- read_sf("data/gis/mpa/mpapb_notake_area.gpkg")
 b200 <- read_sf("data/gis/admin_balearic_islands/buffer200_landsmask.gpkg")
 posidonia <- read_sf("data/gis/posidonia/posidonia_raor.gpkg")
+fa <- read_sf("data/gis/fa/fishing_area.gpkg")
 
 # assign same CRS to data_sf
 st_crs(posidonia) <- st_crs(notake_area)
@@ -154,20 +155,20 @@ g3 <- ggplot() +
   # land mask
   geom_sf(data = land, fill = "grey25", colour = "black", size = 10, alpha = 0.95) +
   # study area
-  geom_sf(data = sa, fill = "orange", colour = "grey10", size = 10, alpha = 0.7) +
+  geom_sf(data = sa, fill = "orange", colour = "grey10", size = 11, alpha = 0.9) +
   # spatial extension
   coord_sf(xlim = xl, ylim = yl, expand = F) +
   # y axi
   scale_y_continuous(breaks = c(38.8,39.2,39.6,40.0)) + 
   # Theme
   theme_bw() +
-  theme(axis.text.y = element_text(size = 10),
+  theme(axis.text.y = element_text(size = 10.5),
         axis.text.x = element_text(size = 7),
         axis.ticks = element_line(size = 0.75),
         axis.ticks.length = unit(5, "pt"),
         axis.title = element_blank(),
         panel.border = element_rect(color = "black", fill = NA, size = 1.2),
-        panel.background = element_rect(fill = "grey80"),
+        panel.background = element_rect(fill = "grey90"),
         panel.grid = element_blank())
 
 g3
@@ -195,13 +196,16 @@ yl <- c((sa_extent["ymax"] + 0.0), (sa_extent["ymin"] - 0.0))
 
 basemap <- ggplot() +
   # MPA
-  geom_sf(data = mpa, fill = "grey80", colour = "#000000", size = 15, linetype = "dashed", alpha = 0.75) +
+  geom_sf(data = mpa, fill = "grey50", colour = "#000000", size = 20, linetype = "dashed", alpha = 0.45) +
   # Posidonia cover
-  geom_sf(data = posidonia, fill = "#55711c", colour = "grey15", size = 1, alpha = 0.45) +
+  geom_sf(data = posidonia, fill = "#55711c", colour = "black", size = 1, alpha = 0.5) +
   # No-take area
   geom_sf(data = notake_area, fill = "#CD5B45", colour = "grey10", size = 9, alpha = 0.75) +
   # land mask
   geom_sf(data = land, fill = "grey25", colour = "black", size = 10, alpha = 0.95) +
+  # fishing area
+  geom_sf_pattern(data = fa, fill = "#FFB43F", colour = "grey20", size = 1, alpha = 0.7,
+                  pattern = "stripe") +
   # study area
   geom_sf(data = sa, fill = NA, colour = "grey10", size = 6) +
   # spatial extension
@@ -214,7 +218,7 @@ basemap <- ggplot() +
         axis.ticks.length = unit(7, "pt"),
         axis.title = element_blank(),
         panel.border = element_rect(color = "black", fill = NA, size = 1.2),
-        panel.background = element_rect(fill = "grey80"),
+        panel.background = element_rect(fill = "grey90"),
         panel.grid = element_blank(),
         legend.position = "bottom",
         legend.direction = "horizontal",
@@ -228,7 +232,6 @@ basemap <- ggplot() +
 basemap
 
 
-# export / save plot
 # export / save plot
 p_png <- "fig/fig1_3.png"
 p_svg <- "fig/fig1_3.svg"
