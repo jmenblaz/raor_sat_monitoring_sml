@@ -11,6 +11,9 @@ library(raster)
 library(prismatic)
 library(gridExtra)
 
+# load fishing area
+fa <- read_sf("data/gis/fa/fishing_area.gpkg")
+
 # load stack to gather differents raster bands
 b <- stack("data/gis/satellite_img_fig/20180830.tif")
 d <- stack("data/gis/satellite_img_fig/20180901.tif")
@@ -55,10 +58,14 @@ yl <- c((sa_extent["ymax"] + 0.0), (sa_extent["ymin"] - 0.0))
 
 
 # b, before
-pb <- ggplot(data = b, aes(x = x, y = y)) +
-  geom_raster(aes(fill = rgb(r = Red, g = Green, b = Blue, maxColorValue = 255)), 
-                             show.legend = FALSE) +
+pb <- ggplot() +
+  # satellite image
+  geom_raster(data = b, aes(x = x, y = y, fill = rgb(r = Red, g = Green, b = Blue, maxColorValue = 255)), 
+              show.legend = FALSE) +
   scale_fill_identity() +
+  # fishing area
+  geom_sf(data = fa, fill = "tan1", colour = "darkorange2", size = 1, alpha = 0.02) +
+  geom_sf(data = fa, fill = "NA", colour = "darkorange2", size = 1, alpha = 1) +
   # spatial extension
   coord_sf(xlim = xl, ylim = yl, expand = F) +
   # Theme
@@ -75,16 +82,20 @@ pb
 
 
 # after
-pd <- ggplot(data = d, aes(x = x, y = y)) +
-  geom_raster(aes(fill = rgb(r = Red, g = Green, b = Blue, maxColorValue = 255)), 
+pd <- ggplot() +
+  # satellite image
+  geom_raster(data = d, aes(x = x, y = y, fill = rgb(r = Red, g = Green, b = Blue, maxColorValue = 255)), 
               show.legend = FALSE) +
   scale_fill_identity() +
+  # fishing area
+  geom_sf(data = fa, fill = "tan1", colour = "darkorange2", size = 1, alpha = 0.02) +
+  geom_sf(data = fa, fill = "NA", colour = "darkorange2", size = 1, alpha = 1) +
   # spatial extension
   coord_sf(xlim = xl, ylim = yl, expand = F) +
   # Theme
   theme_bw() +
-  theme(axis.text.y = element_text(size = 10, color = "transparent"),
-        axis.text.x = element_text(size = 10, color = "transparent"),
+  theme(axis.text.y = element_text(size = 10, colour = "transparent"),
+        axis.text.x = element_text(size = 10),
         axis.ticks = element_line(size = 0.75),
         axis.ticks.length = unit(7, "pt"),
         axis.title = element_blank(),

@@ -6,6 +6,7 @@
 # Plot 1 - Global location
 # Plot 2 - Balearic archipielago
 # Plot 3 - Study area
+# Plot 3.1 - Study area v2
 
 # Plot 4 - Supplementary material fishing area
 
@@ -35,7 +36,6 @@ fa <- read_sf("data/gis/fa/fishing_area.gpkg")
 
 # assign same CRS to data_sf
 st_crs(posidonia) <- st_crs(notake_area)
-
 
 
 
@@ -235,6 +235,65 @@ basemap
 # export / save plot
 p_png <- "fig/fig1_3.png"
 p_svg <- "fig/fig1_3.svg"
+ggsave(p_png, basemap, width=10, height=12, units="cm", dpi=350, bg="white")
+ggsave(p_svg, basemap, width=10, height=12, units="cm", dpi=350, bg="white")
+
+
+
+
+# Plot 3.1 - Study area v2 -------------------------------------------------------
+
+# study area extent
+mpa_extent <- st_bbox(mpa)
+
+# create xl and yl object for ggplot
+xl <- c((mpa_extent["xmax"] + 0.0), (mpa_extent["xmin"] - 0.0)) 
+yl <- c((mpa_extent["ymax"] + 0.0), (mpa_extent["ymin"] - 0.0))
+
+xl <- c(2.769, 2.681)
+yl <- c(39.509 , 39.415) 
+
+basemap <- ggplot() +
+  # MPA
+  geom_sf(data = mpa, fill = "grey50", colour = "#000000", size = 20, linetype = "dashed", alpha = 0.45) +
+  # Posidonia cover
+  # geom_sf(data = posidonia, fill = "#55711c", colour = "black", size = 1, alpha = 0.5) +
+  # No-take area
+  geom_sf(data = notake_area, fill = "#CD5B45", colour = "grey10", size = 9, alpha = 0.75) +
+  # land mask
+  geom_sf(data = land, fill = "grey25", colour = "black", size = 10, alpha = 0.95) +
+  # fishing area
+  geom_sf_pattern(data = fa, fill = "#FFB43F", colour = "grey20", size = 1, alpha = 0.75,
+                  pattern = "stripe") +
+  # study area
+  geom_sf(data = sa, fill = NA, colour = "black", size = 10) +
+  # spatial extension
+  coord_sf(xlim = xl, ylim = yl, expand = F) +
+  # Theme
+  theme_bw() +
+  theme(axis.text.y = element_text(size = 10),
+        axis.text.x = element_text(size = 10),
+        axis.ticks = element_line(size = 0.75),
+        axis.ticks.length = unit(7, "pt"),
+        axis.title = element_blank(),
+        panel.border = element_rect(color = "black", fill = NA, size = 1.2),
+        panel.background = element_rect(fill = "grey90"),
+        panel.grid = element_blank(),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.justification = "center",
+        legend.key.width = unit(38, "pt"),
+        legend.key.height = unit(11, "pt"),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 10))
+
+
+basemap
+
+
+# export / save plot
+p_png <- "fig/fig1_3_v2.png"
+p_svg <- "fig/fig1_3_v2.svg"
 ggsave(p_png, basemap, width=10, height=12, units="cm", dpi=350, bg="white")
 ggsave(p_svg, basemap, width=10, height=12, units="cm", dpi=350, bg="white")
 

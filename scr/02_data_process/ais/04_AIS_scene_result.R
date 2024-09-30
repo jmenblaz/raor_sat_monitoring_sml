@@ -34,7 +34,7 @@ ships <- ships %>% filter(duplicated == "FALSE") # filter ships duplicated
 n_ais <- nrow(ais)  # 386 ->  num of unique ships with AIS
 n_ships <- nrow(ships)  # 4442 -> ship digitized (NO duplicated - anchoring and navigating)
 
-(n_ais/n_ships)*100  # % -> ** 8.69% of total ship found by satellite presented AIS  **
+100 - ((n_ais/n_ships)*100)  # % -> ** 8.69% of total ship found by satellite presented AIS  **
 
 
 
@@ -69,6 +69,17 @@ cmb$percentage_ais_ships_digit <- (cmb$number_ships_ais/cmb$number_ships)*100
 # export
 st_write(cmb, "data/output/scene_ais_data.gpkg", append = FALSE)
 
+# t student - difference in detection between AIS and digitalization (Normal distribution)
+# Wilcox test - NO normal distribution
+cmb <- read.csv("data/output/scene_ais_data.csv")
+
+# 1. Verificar la normalidad de los datos
+shapiro.test(cmb$number_ships)  # Test de normalidad para ais
+shapiro.test(cmb$ais_ships)  # Test de normalidad para ships
+
+wilcox.test(cmb$ais_ships, cmb$number_ships)
+# W = 8445, p-value = 1.402e-10
+# Significat difference between ships and ais detections
 
 
 

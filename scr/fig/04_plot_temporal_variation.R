@@ -17,16 +17,20 @@ library(lubridate)
 # 1) Number of vessel per day and year in satellite images
 
 # Prepare data:
+
 # raw digitalized
-df <- read.csv("data/output/shipProc.csv")
+df <- read.csv("data/output/shipProc.csv", sep = ";")
+
 # filter
 df <- df %>% 
   filter(duplicated == FALSE) 
   # %>%
   # filter(navigationStatus == "anchor")
+
 # year
 df$acquired <- as.POSIXct(df$acquired)
 df$year <- year(df$acquired)
+
 # Contar el número de registros por día sin tener en cuenta el año
 registros_por_dia <- df %>%
   mutate(dia = format(as.Date(acquired), "%m-%d")) %>%
@@ -100,7 +104,7 @@ ggsave(p_svg, p1, width=14, height=8, units="cm", dpi=350, bg="white")
 
 
 
-# 2) Mean number of vessel per day by method (AIS, Satellite, Fixed Camera)
+# 2) Mean number of vessel per day by method (AIS, Satellite)
 # Create days (use one year as a model)
 start_date <- as.Date("2023-08-25")
 end_date <- as.Date("2023-09-20")
@@ -163,10 +167,6 @@ ais$num_registros<- as.numeric(ais$num_registros)
 ais$numeracion_secuencial <- as.numeric(ais$numeracion_secuencial)
 
 
-# 2.1.3) Fixed Camera data
-fc <- df ############################ REPLACE FOR FIXEC CAMERA DATA
-
-
 # -----------------------------------------------------------------------------
 # 2.2A Plot ------------------------------------------- Number of ships per day
 
@@ -183,13 +183,7 @@ p2a <- ggplot() +
               color = "deepskyblue4", se = F, alpha = 0.1) +
   geom_smooth(data = ais, aes(x = numeracion_secuencial, y = num_registros), size = 0.75, span = 0.2, 
               color = "deepskyblue3", fill = "lightblue3") +
-  # Fixed Camera
-  geom_point(data = fc, aes(x = numeracion_secuencial, y = num_registros), color = "darkolivegreen3", size = 2, alpha = 0.35) +
-  geom_smooth(data = fc, aes(x = numeracion_secuencial, y = num_registros), size = 1.15, span = 0.2, 
-              color = "darkolivegreen", se = F, alpha = 0.1) +
-  geom_smooth(data = fc, aes(x = numeracion_secuencial, y = num_registros), size = 0.75, span = 0.2, 
-              color = "darkolivegreen3", fill = "#c0ee8e") +
-  
+
   # add line for fishing time-restriction
   geom_vline(xintercept = 8, linetype="dashed", color="grey40", size = 0.35, alpha = 0.45) +
   # labels sequential days created
@@ -287,12 +281,6 @@ ais$ship_denskm2_fa <- as.numeric(ais$ship_denskm2_fa)
 ais$numeracion_secuencial <- as.numeric(ais$numeracion_secuencial)
 
 
-
-# fixed camera ------------------------------
-#   method <- "fixed_camera"
-#  fc <- read.csv(paste0(path, method,"_fishing_effort_data.csv"))
-  
-
 p2b <- ggplot() +
   # Satellite
   geom_point(data = df, aes(x = numeracion_secuencial, y = ship_denskm2_fa), color = "#FF8828", size = 2, alpha = 0.35) +
@@ -306,9 +294,7 @@ p2b <- ggplot() +
               color = "deepskyblue4", se = F, alpha = 0.1) +
   geom_smooth(data = ais, aes(x = numeracion_secuencial, y = ship_denskm2_fa), size = 0.75, span = 0.05, 
               color = "deepskyblue3", fill = "lightblue3") +
-  # Fixed Camera
-  
-  
+
   
   
   # add line for fishing time-restriction

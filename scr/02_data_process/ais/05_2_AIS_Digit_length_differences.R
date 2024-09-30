@@ -3,8 +3,9 @@
 # ----------------------------------------------------------------------
 
 # 5.2) Differences of length between pairs of ships identified by AIS and satellite
- 
-#      1) Select pairs of vessel identified by methods
+
+# Version 2: Using pairs of ships identfied by Satellite and AIS (distance to neares ship =< 50)
+#      1) Select pairs of vessel identified by methods (nearest AIS and satellite records)
 #      2) Statistical analysis of differences (t-test)
 
 
@@ -116,7 +117,7 @@ for (id in ids) {
     }
 }
 
-Sys.time() - t # 1 min aprox.
+Sys.time() - t # 1:30 min aprox.
 
 # save pairs results
 
@@ -128,10 +129,10 @@ Sys.time() - t # 1 min aprox.
 # AIS - AIS cases
 pairs_ais_ais <- pairs %>% filter(ais_method == "ais" & sat_method == "ais")
 # AIS - Satellite cases
-pairs <- pairs %>% filter(ais_method == "ais" & sat_method == "satellite")
+pairs_ais_sat <- pairs %>% filter(ais_method == "ais" & sat_method == "satellite")
 
 # export / save csv
-write.csv(pairs,"data/output/ais/length_ais_sat_pairs.csv", row.names = FALSE)
+write.csv(pairs_ais_sat,"data/output/ais/length_ais_sat_pairs.csv", row.names = FALSE)
 # export / save csv
 write.csv(pairs_ais_ais,"data/output/ais/length_ais_ais_pairs.csv", row.names = FALSE)
 
@@ -141,20 +142,29 @@ write.csv(pairs_ais_ais,"data/output/ais/length_ais_ais_pairs.csv", row.names = 
 # -----------------------------------------------------------------------------
 # Statistics
 
-# t-student???
+# export / save csv
+pairs <- read.csv("data/output/ais/length_ais_sat_pairs.csv")
 
+# filter neighbors with >= 50m distance
+pairs$dist <- as.numeric(pairs$dist)
+pairs <- pairs %>% filter(dist <= 50)
+
+
+# t-student
 # Differences between number of vessel identified by method per scene
 t_test <- t.test(pairs$ais_length, pairs$sat_length, paired = TRUE)
 print(t_test)
-# Note: t = -1.2485, df = 369, p-value = 0.2126
+
+summary(pairs$ais_length)
+sd(pairs$ais_length)
+summary(pairs$sat_length)
+sd(pairs$sat_length)
+# Results:   t = -1.3174, df = 284, p-value = 0.1888
 
 
-pairs$dist <- as.numeric(pairs$dist)
-
-pairs <- pairs %>% filter(dist <= 75)
-
-
+# Pearson correlation
 pearson_corr <- cor(pairs$ais_length, pairs$sat_length, method = "pearson")
+print(pearson_corr)
 
 ggplot(pairs, aes(x = sat_length, y = ais_length)) +
   geom_point() +

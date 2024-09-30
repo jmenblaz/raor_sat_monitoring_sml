@@ -81,7 +81,6 @@ st_crs(fa) <- st_crs(mpa)
 # year of study ----------------
 years <- 2016:2023
 
-
 # extension of study area (bounding box)
 ext <- st_bbox(sa)
 
@@ -103,13 +102,16 @@ r[r>0] <- 50  # 50m2 of area
 
 
 
+# -------------------------------------------------------------------------
 # load and prepare data ---------
 # Note*: load instrument data and run step 1.3) Fishing effort process
 
 # 1.1) Satellite data -----------------------------------------------------
 method <- "satellite"
-df <- read.csv("data/output/shipProc.csv", sep = ";")  # 4847 total
-# create day variable in data
+df <- read.csv("data/output/shipProc.csv", sep = ";")  # 4843 total
+# double check that date field is in right format
+df$acquired <- as.POSIXct(df$acquired, format = "%d/%m/%Y %H:%M")
+# create day column
 df$day <- format(as.Date(df$acquired), "%Y-%m-%d")
 
 # prepare satellite data for fishing effort analysis
@@ -128,6 +130,8 @@ df$day <- format(as.Date(df$timestamp), "%Y-%m-%d")
 
 
 
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # 1.3) Fishing effort process --------------------------------------------------
 
 # empty df
@@ -142,6 +146,8 @@ for (y in 1:length(years)) {
   year <- years[y]
   # info
   print(paste0("Processing year ", year, " of 2023"))
+  
+  # days in the year
   days <- seq(as.Date(paste(year, "-08-25", sep = "")), as.Date(paste(year, "-09-20", sep = "")), by = "days")
   
   for (d in 1:length(days)) {
@@ -232,7 +238,7 @@ for (y in 1:length(years)) {
 
 Sys.time() - t  
 # Note: X min for Satellite 12 min
-# Note: X min for AIS data
+# Note: X min for AIS data  15 min
 
 # specify method/instrument
 fishing_effort$method <- method
@@ -240,4 +246,24 @@ fishing_effort$method <- method
 # export fishing effort data
 path <- "data/output/fishing_effort/"
 write.csv(fishing_effort, paste0(path, method,"_fishing_effort_data.csv"), row.names = FALSE)
+
+
+# combine cloudpoints daily files and export result ----------------------------
+path <-paste0("data/output/fishing_effort/cloudpoint/",method,"/")
+
+# list .csv
+f <- list.files(path, full.names = TRUE)
+# read and combine csv (dfs) into on csv or df 
+dfs <- f %>%
+  lapply(function(x) {
+    read.csv(x, stringsAsFactors = FALSE) %>% 
+      mutate(across(everything(), as.character))  # convert to chr all data
+  }) %>% 
+  bind_rows()           # combine
+
+# save / export
+write.csv(dfs, file = paste0("data/output/fishing_effort/cloudpoint/",method,"_fishing_effort.csv"), row.names = FALSE)
+
+
+
 

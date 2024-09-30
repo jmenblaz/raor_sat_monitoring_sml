@@ -2,7 +2,9 @@
 # 05 - AIS and satellite statistics differences analysis
 # ----------------------------------------------------------------------
 
-# 5.2) Differencse of length between pairs of ships identified by AIS and satellite
+# 5.1) Differencse of length between pairs of ships identified by AIS and satellite
+
+# Use all AIS ships and all satellite records
 
 
 
