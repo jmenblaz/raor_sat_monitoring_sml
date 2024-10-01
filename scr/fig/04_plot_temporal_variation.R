@@ -229,6 +229,14 @@ ggsave(p_svg, p2a, width=14, height=8, units="cm", dpi=350, bg="white")
 #------------------------------------------------------------------------------
 # 2.2.B Plot ------------------------------------------- Fishing effort per day
 
+# 2) Mean number of vessel per day by method (AIS, Satellite)
+# Create days (use one year as a model)
+start_date <- as.Date("2023-08-25")
+end_date <- as.Date("2023-09-20")
+days <- seq(from = start_date, to = end_date, by = "day")
+days <- format(days, "%m-%d")
+
+
 # 2.1 ) Prepare data--------------------------------------
 # 2.1.1) Satellite ----------
 method <- "satellite"
@@ -240,6 +248,7 @@ df$ship_denskm2_fa <- df$ships/6.980401
 # year
 df$timestamp <- as.POSIXct(df$timestamp)
 df$year <- year(df$timestamp)
+
 # fishing effort by day
 df <- df %>%
   group_by(day, year) %>%
@@ -253,7 +262,6 @@ df <- df %>%
 # as numeric
 df$ship_denskm2_fa <- as.numeric(df$ship_denskm2_fa)
 df$numeracion_secuencial <- as.numeric(df$numeracion_secuencial)
-
 
 
 
@@ -295,8 +303,6 @@ p2b <- ggplot() +
   geom_smooth(data = ais, aes(x = numeracion_secuencial, y = ship_denskm2_fa), size = 0.75, span = 0.05, 
               color = "deepskyblue3", fill = "lightblue3") +
 
-  
-  
   # add line for fishing time-restriction
   geom_vline(xintercept = 8, linetype="dashed", color="grey40", size = 0.35, alpha = 0.45) +
   # labels sequential days created
@@ -304,7 +310,10 @@ p2b <- ggplot() +
   # y axis
   ylim(-2, 30) + 
   # label text
-  ylab("Fishing effort (N.º Ships/km2 of fishing area)") + xlab("") +
+  # y
+  ylab((expression("Fishing effort (N.º ships/km"^2*" of fishing area)"))) + 
+  # x
+  xlab("") +
   # theme
   theme_bw() +
   theme(axis.title.x = element_text(family = "Arial", size = 9, colour = "grey35"),
@@ -388,7 +397,332 @@ ggsave(p_svg, p3, width=9, height=8, units="cm", dpi=300, bg="white")
 
 # 4.1 ) Prepare data--------------------------------------
 # 4.1.1) Satellite ----------
-df <- read.csv("data/output/shipProc.csv")
+df <- read.csv("data/output/shipProc.csv", sep = ";")
+# filter
+df <- df %>% 
+  filter(duplicated == FALSE) 
+# filter(navigationStatus == "anchor")
+str(df)
+# year
+df$acquired <- as.POSIXct(df$acquired, format = "%d/%m/%Y %H:%M")
+df$year <- year(df$acquired)
+# day week (english)
+Sys.setlocale("LC_TIME", "English")
+df$wday <- lubridate::wday(df$acquired, label = TRUE, abbr = FALSE)
+
+# records by weekday
+df <- df %>%
+  group_by(year, wday) %>%
+  summarise(num_registros = n())
+# df <- na.omit(df)
+
+# numeric sequentation of weekdays
+df <- df %>%
+  mutate(wday_num = case_when(
+    wday == "Monday" ~ 1,
+    wday == "Tuesday" ~ 2,
+    wday == "Wednesday" ~ 3,
+    wday == "Thursday" ~ 4,
+    wday == "Friday" ~ 5,
+    wday == "Saturday" ~ 6,
+    wday == "Sunday" ~ 7
+  ))
+
+# as numeric
+df$wday_num <- as.numeric(df$wday_num)
+df$num_registros <- as.numeric(df$num_registros)
+
+
+# 4.1.2) AIS data ---------------
+ais <- read.csv("data/output/ais_scenes_interpolated.csv")
+# filter potential AIS position in the same timestamp
+ais <- ais %>%
+  distinct(mmsi, timestamp, .keep_all = TRUE)
+
+# year
+ais$timestamp <- as.POSIXct(ais$timestamp)
+ais$year <- year(ais$timestamp)
+
+# day week (english)
+Sys.setlocale("LC_TIME", "English")
+ais$wday <- lubridate::wday(ais$timestamp, label = TRUE, abbr = FALSE)
+
+# records by weekday
+ais <- ais %>%
+  group_by(year, wday) %>%
+  summarise(num_registros = n())
+
+ais <- na.omit(ais)
+
+# numeric sequentation of weekdays
+ais <- ais %>%
+  mutate(wday_num = case_when(
+    wday == "Monday" ~ 1,
+    wday == "Tuesday" ~ 2,
+    wday == "Wednesday" ~ 3,
+    wday == "Thursday" ~ 4,
+    wday == "Friday" ~ 5,
+    wday == "Saturday" ~ 6,
+    wday == "Sunday" ~ 7
+  ))
+
+# as numeric
+ais$wday_num <- as.numeric(ais$wday_num)
+ais$num_registros <- as.numeric(ais$num_registros)
+
+
+days <-  c("Monday", "Tuesday","Wednesday", "Thursday", "Friday","Saturday","Sunday")
+
+# 4.2 Plot
+p4 <- ggplot() +
+  # Satellite
+  geom_point(data = df, aes(x = wday_num, y = num_registros), color = "#FF8828", size = 2, alpha = 0.35) +
+  geom_smooth(data = df, aes(x = wday_num, y = num_registros), size = 1.15, span = 0.2, 
+              color = "darkorange4", se = F, alpha = 0.1) +
+  geom_smooth(data = df, aes(x = wday_num, y = num_registros), size = 0.75, span = 0.2, 
+              color = "#FF8828", fill = "#F8D6BA") +
+  # AIS
+  geom_point(data = ais, aes(x = wday_num, y = num_registros), color = "deepskyblue3", size = 2, alpha = 0.35) +
+  geom_smooth(data = ais, aes(x = wday_num, y = num_registros), size = 1.15, 
+              color = "deepskyblue4", se = F, alpha = 0.1) +
+  geom_smooth(data = ais, aes(x = wday_num, y = num_registros), size = 0.75, 
+              color = "deepskyblue3", fill = "lightblue3") +
+  
+  # labels sequential days created
+  scale_x_continuous(breaks = 1:length(days), labels = days) +
+  # label text
+  ylab("N.º Ships") + xlab("") +
+  # theme
+  theme_bw() +
+  theme(axis.title.x = element_text(family = "Arial", size = 9, colour = "grey35"),
+        axis.title.y = element_text(family = "Arial", size = 9, colour = "grey35"),
+        # axis labels
+        axis.text.y = element_text(size = 9, family = "Arial"),
+        axis.text.x = element_text(size = 8, family = "Arial",
+                                   angle = 90, hjust = 1, vjust = 0.5),
+        axis.ticks = element_line(size = 0.4),
+        axis.ticks.length = unit(-5, "pt"),  # negative lenght -> ticks inside the plot 
+        # panel
+        panel.border = element_rect(color = "black", fill = NA, size = 1),
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+  )
+
+p4
+
+
+# save plot
+p_png <- "fig/fig4_4.png"
+p_svg <- "fig/fig4_4.svg"
+ggsave(p_png, p4, width=9, height=10, units="cm", dpi=350, bg="white")
+ggsave(p_svg, p4, width=9, height=10, units="cm", dpi=350, bg="white")
+
+
+
+
+
+class(df$num_registros)
+class(df$wday_num)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ----------------------------------------------------------------------------
+# 5) Daily annual temporal variation of ships with AIS and Satellite detection 
+
+# 2) Mean number of vessel per day by method (AIS, Satellite)
+
+# Create list of days
+years <- c("2016","2017","2018","2019","2020","2021","2022","2023")
+
+days <- data.frame()
+for (y in years) {
+  start_date <- as.Date(paste0(y,"-08-25"))
+  end_date <- as.Date(paste0(y,"-09-20"))
+  ds <- seq(from = start_date, to = end_date, by = "day")
+  ds <- data.frame(ds)
+  days <- rbind(days, ds)
+}
+rm(ds)
+
+# 5.1 ) Prepare data------------------------------------------------------
+# 5.1.1) Satellite ----------
+
+df <- read.csv("data/output/shipProc.csv", sep = ";")
+# filter
+df <- df %>% 
+  filter(duplicated == FALSE) %>%
+  filter(navigationStatus == "anchor")
+
+# format date
+df$acquired <- as.Date(df$acquired, format="%d/%m/%Y") # as date
+
+# count number of records by day
+df <- df %>%
+  group_by(acquired) %>%
+  summarise(num_registros = n())
+
+# as numeric
+df$num_registros<- as.numeric(df$num_registros)
+df <- df %>% rename(ds = acquired)
+
+# match between df data and days
+data_sat <- left_join(days, df, by = "ds")
+# replace NA by 0 
+data_sat <- replace(data_sat, is.na(data_sat), 0)
+data_sat <- na.omit(data_sat)
+data_sat$ds <- as.character(data_sat$ds)
+
+
+# 5.1.2) AIS data ------------------------------
+ais <- read.csv("data/output/ais_scenes_interpolated.csv")
+# filter potential AIS position in the same timestamp
+ais <- ais %>%
+  distinct(mmsi, timestamp, .keep_all = TRUE)
+
+# format date
+ais$timestamp <- as.POSIXct(ais$timestamp)
+
+# Contar el número de registros por día sin tener en cuenta el año
+ais <- ais %>%
+  mutate(ds = format(as.Date(timestamp), "%Y-%m-%d")) %>%
+  group_by(ds) %>%
+  summarise(num_registros = n())
+
+ais$ds <- as.Date(ais$ds) # as date
+
+# match between df data and days
+data_ais <- left_join(days, ais, by = "ds")
+
+# as numeric
+data_ais$num_registros<- as.numeric(data_ais$num_registros)
+
+
+data_ais <- data_ais[28:54,]
+
+# -----------------------------------------------------------------------------
+# 5.2  Plot ------------------------------------------- Number of ships per day and year
+p5
+p5 <- ggplot() +
+  # AIS
+  geom_point(data = data_ais, aes(x = ds, y = num_registros), color = "deepskyblue3", size = 2, alpha = 0.35) +
+  geom_smooth(data = data_ais, aes(x = ds, y = num_registros), size = 1.15, span = 0.2, 
+              color = "deepskyblue4", se = F, alpha = 0.1) +
+  geom_smooth(data = data_ais, aes(x = ds, y = num_registros), size = 0.75, span = 0.2, 
+              color = "deepskyblue3", fill = "lightblue3")
+
+
+p5 <- ggplot() +
+
+  # Satellite
+#  geom_point(data = data_sat, aes(x = ds, y = num_registros), color = "#FF8828", size = 1.5, alpha = 0.35) +
+#  geom_smooth(data = data_sat, aes(x = ds, y = num_registros), size = 1.15, span = 1, 
+#              color = "darkorange4", se = F, alpha = 0.1) +
+#  geom_smooth(data = data_sat, aes(x = ds, y = num_registros), size = 0.75, span = 1, 
+#              color = "#FF8828", fill = "#F8D6BA") +
+  
+  # AIS
+  geom_point(data = data_ais, aes(x = ds, y = num_registros), color = "deepskyblue3", size = 2, alpha = 0.35) +
+  geom_smooth(data = data_ais, aes(x = ds, y = num_registros), size = 1.15, span = 0.2, 
+              color = "deepskyblue4", se = F, alpha = 0.1) +
+  geom_smooth(data = data_ais, aes(x = ds, y = num_registros), size = 0.75, span = 0.2, 
+              color = "deepskyblue3", fill = "lightblue3") +
+  
+  # add line for fishing time-restriction
+  geom_vline(xintercept = c(8,35,62), linetype="dashed", color="grey40", size = 0.35, alpha = 0.45) +
+  # labels sequential days created
+  scale_x_discrete(breaks = unique(data_ais$ds)) +
+  #
+  # coord_cartesian(ylim = c(-10,150)) +
+  #coord_cartesian(xlimi = c()) +
+  # label text
+  ylab("N.º Ships") + xlab("") +
+  # theme
+  theme_bw() +
+  theme(axis.title.x = element_text(family = "Arial", size = 9, colour = "grey35"),
+        axis.title.y = element_text(family = "Arial", size = 9, colour = "grey35"),
+        # axis labels
+        axis.text.y = element_text(size = 9, family = "Arial"),
+        axis.text.x = element_text(size = 6.5, family = "Arial",
+                                   angle = 90, hjust = 1, vjust = 0.5),
+        axis.ticks = element_line(size = 0.4),
+        axis.ticks.length = unit(-5, "pt"),  # negative lenght -> ticks inside the plot 
+        # panel
+        panel.border = element_rect(color = "black", fill = NA, size = 1),
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        # legend
+        legend.position = "bottom", 
+        legend.direction = "horizontal",
+        legend.justification = "center",
+        legend.key.width = unit(11, "pt"),
+        legend.key.height = unit(5, "pt"),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 6.5)
+  )
+
+p5
+
+# save plot
+p_png <- "fig/fig4_5.png"
+p_svg <- "fig/fig4_5.svg"
+ggsave(p_png, p2a, width=14, height=8, units="cm", dpi=350, bg="white")
+ggsave(p_svg, p2a, width=14, height=8, units="cm", dpi=350, bg="white")
+
+
+
+# copy above ----------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 6) Number of fishing ships identify by methods in week days --------------------
+#    in the study time period
+
+# 6.1 ) Prepare data--------------------------------------
+# 6.1.1) Satellite ----------
+df <- read.csv("data/output/shipProc.csv", sep = ";")
 # filter
 df <- df %>% 
   filter(duplicated == FALSE) 
@@ -464,9 +798,8 @@ ais$num_registros <- as.numeric(ais$num_registros)
 
 days <-  c("Monday", "Tuesday","Wednesday", "Thursday", "Friday","Saturday","Sunday")
 
-
 # 4.2 Plot
-p4 <- ggplot() +
+p6 <- ggplot() +
   # Satellite
   geom_point(data = df, aes(x = wday_num, y = num_registros), color = "#FF8828", size = 2, alpha = 0.35) +
   geom_smooth(data = df, aes(x = wday_num, y = num_registros), size = 1.15, span = 0.2, 
@@ -501,14 +834,7 @@ p4 <- ggplot() +
         panel.grid = element_blank(),
   )
 
-p4
-
-
-# save plot
-p_png <- "fig/fig4_4.png"
-p_svg <- "fig/fig4_4.svg"
-ggsave(p_png, p4, width=9, height=10, units="cm", dpi=350, bg="white")
-ggsave(p_svg, p4, width=9, height=10, units="cm", dpi=350, bg="white")
+p6
 
 
 
