@@ -8,7 +8,10 @@
 
 # 3) Minutes from sunrise of timestamps Planet scene
 # 4) Mean Number of ships identify by methods in week days in the study time period
+# 5) Daily annual temporal variation of ships with AIS and Satellite detection 
+# 6) Cloud coverage heatmap
 
+# 7) Number of fishing ships identify by methods in week days --------------------
 
 library(dplyr)
 library(ggplot2)
@@ -763,29 +766,134 @@ ggsave(p_svg, p, width=18, height=9, units="cm", dpi=350, bg="white")
 
 
 
+# -----------------------------------------------------------------------------
+# 6) Cloudcoverage heatmap -----------------------------------------------------
 
+start_date <- as.Date("2023-08-25")
+end_date <- as.Date("2023-09-20")
+days <- seq(from = start_date, to = end_date, by = "day")
+days <- format(days, "%m-%d")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# 6) Number of fishing ships identify by methods in week days --------------------
-#    in the study time period
 
 # 6.1 ) Prepare data--------------------------------------
-# 6.1.1) Satellite ----------
+df <- read.csv("data/output/scene_data.csv")
+
+# create dates sequence
+fechas <- seq(from = as.Date("2016-08-25"), to = as.Date("2023-09-20"), by = "day")
+
+# summary by day
+df_resumen <- df %>%
+  group_by(date) %>%
+  summarise(
+    total_clouds_area = sum(clouds_area_km2, na.rm = TRUE),
+    total_digitized_area = sum(scene_area_km2, na.rm = TRUE)
+  )
+
+# calculate % of clouds
+df_resumen <- df_resumen %>%
+  mutate(
+    perc_clouds = (total_clouds_area / total_digitized_area) * 100,
+    date = as.Date(date)  # Asegúrate de que la fecha esté en formato Date
+  )
+
+# New data frame for join
+df_final <- data.frame(date = fechas) %>%
+  left_join(df_resumen, by = "date")
+
+# filter only study time
+df_final <- df_final %>%
+  filter(month(date) == 8 & day(date) >= 25 | month(date) == 9 & day(date) <= 20)
+
+# format data
+df_final <- df_final %>%
+  mutate(
+    year = year(date),                   # Extrae el año
+    month_day = format(date, "%m-%d"), # Extrae mes y día en formato MM-DD
+    perc_clouds = round(perc_clouds, 2) # round decimals
+  )
+# reorder values of days for plotting
+df_final <- df_final %>%
+  mutate(month_day = factor(month_day, levels = rev(unique(month_day)))) 
+
+
+# plot - heatmap ------------------ 
+
+colRamp <- colorRampPalette(c('#B9D3EE','#f9f4f4','#C7C7C7','#ABABAB','#8B8682','#404040'))(50)
+
+
+
+
+
+
+
+p6 <- ggplot(df_final, aes(y = month_day, x = factor(year), fill = perc_clouds)) +
+        # tiles color and border,
+        geom_tile(color = "grey95",
+                  lwd = 0.25) +
+        # tiles labels
+        geom_text(aes(label = perc_clouds), color = "grey20", size = 3, family = "Arial") +
+        # fill color
+       #  scale_fill_viridis_c(option = "plasma", na.value = "white") +  # Colores con viridis, grey para NAs
+        scale_fill_gradientn(colors = colRamp,
+                             guide = guide_colorbar(frame.colour = "black", ticks.colour = "black", title = ""),
+                             na.value = "#FFFFFF") +
+        scale_y_discrete(position = "right") +  # Y axis on right
+        # theme 
+        theme_bw() +
+        # general theme
+        theme(axis.title.x = element_blank(),
+              axis.title.y = element_blank(),
+              # axis labels
+              axis.text.y = element_text(size = 9, family = "Arial"),
+              axis.text.x = element_text(size = 10, family = "Arial"),
+              axis.text.y.right = element_text(),     # Etiquetas del eje Y en el lado derecho
+              axis.ticks = element_blank(),
+              # panel
+              panel.border = element_rect(color = "black", fill = NA, size = 1.1),
+              panel.background = element_blank(),
+              panel.grid = element_blank(),
+              # legend
+              legend.position =  "none")
+
+
+p6
+
+
+
+# save plot
+p_png <- "fig/fig2_3.png"
+p_svg <- "fig/fig2_3.svg"
+ggsave(p_png, p6, width=10, height=22, units="cm", dpi=350, bg="white")
+ggsave(p_svg, p6, width=10, height=22, units="cm", dpi=350, bg="white")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 7) Number of fishing ships identify by methods in week days --------------------
+#    in the study time period
+
+# 7.1 ) Prepare data--------------------------------------
+# 7.1.1) Satellite ----------
 df <- read.csv("data/output/shipProc.csv", sep = ";")
 # filter
 df <- df %>% 
@@ -822,7 +930,7 @@ df$wday_num <- as.numeric(df$wday_num)
 df$num_registros <- as.numeric(df$num_registros)
 
 
-# 4.1.2) AIS data ---------------
+# 7.1.2) AIS data ---------------
 ais <- read.csv("data/output/ais_scenes_interpolated.csv")
 # filter potential AIS position in the same timestamp
 ais <- ais %>%
@@ -862,8 +970,8 @@ ais$num_registros <- as.numeric(ais$num_registros)
 
 days <-  c("Monday", "Tuesday","Wednesday", "Thursday", "Friday","Saturday","Sunday")
 
-# 4.2 Plot
-p6 <- ggplot() +
+# 7.2 Plot
+p7 <- ggplot() +
   # Satellite
   geom_point(data = df, aes(x = wday_num, y = num_registros), color = "#FF8828", size = 2, alpha = 0.35) +
   geom_smooth(data = df, aes(x = wday_num, y = num_registros), size = 1.15, span = 0.2, 
@@ -898,7 +1006,7 @@ p6 <- ggplot() +
         panel.grid = element_blank(),
   )
 
-p6
+p7
 
 
 

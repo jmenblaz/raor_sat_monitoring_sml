@@ -4,9 +4,11 @@
 
 
 # 1) Raincloud to visualize differences in the length of the boats of AIS and digitalized 
-#    (potential Supplementary Material)
+#    (Supplementary Material)
 
-# 2) Cloudpoints of the points spatial distribtion (Supplementary Material)
+# 2) Cloudpoints of the points spatial distribution (Fig 3)
+
+# 3) Scatter plot of lengths between AIS and digitalized (Fig 4a)
 
 library(sf)
 library(dplyr)
@@ -23,13 +25,14 @@ library(raster)
 library(smplot2)
 
 
-
+# ------------------------------------------------------------------------------
 # 1) Raincloud to visualize differences in the length of the boats of AIS and digitized -----
-#    (potential Supplementary Material)
+
 
 # load data of AIS and satellite pairs of ships detected
 pairs <- read.csv("data/output/ais/length_ais_sat_pairs.csv")
-
+# filter ships distance >= 50
+pairs <- pairs %>% filter(dist <= 50)
 
 # prepare data for plot
 
@@ -107,7 +110,7 @@ ggsave(p_svg, p, width=7, height=8, units="cm", dpi=450, bg="white")
 
 
 
-
+# -----------------------------------------------------------------------------
 # 2) Maps composition of ships detected cloudpoints ---------------------------
 
 # load ship, vessel and camera data
@@ -203,20 +206,20 @@ basemap
 p1 <- basemap + 
   
   # ais vessels points
+  # geom_point(data = ais, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2]),
+  #            color = "lightblue", size = 3.0, alpha = 0.05) +
   geom_point(data = ais, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2]),
-             color = "lightblue", size = 3.0, alpha = 0.05) +
+             color = "grey15", size = 1.3, alpha = 0.75) +
   geom_point(data = ais, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2]),
-             color = "grey15", size = 2.3, alpha = 0.75) +
-  geom_point(data = ais, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2]),
-             color = "deepskyblue3", size = 1, alpha = 0.60) + 
+             color = "deepskyblue4", size = 0.7, alpha = 1) + 
   
   # ais vessels points (fishing area)
+  # geom_point(data = ais_f, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2]),
+  #           color = "lightblue", size = 3.6, alpha = 0.15) +
   geom_point(data = ais_f, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2]),
-             color = "lightblue", size = 3.6, alpha = 0.15) +
+             color = "grey15", size = 1.3, alpha = 1) +
   geom_point(data = ais_f, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2]),
-             color = "grey15", size = 2.9, alpha = 1) +
-  geom_point(data = ais_f, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2]),
-             color = "#87CEFA", size = 1.7, alpha = 0.90)  
+             color = "#87CEFA", size = 0.7, alpha = 0.90)  
   
 # plot info
 #  annotate("text", x = 2.7495, y = 39.4635, label = "AIS", parse = TRUE, family = "Arial",
@@ -236,20 +239,20 @@ p1
 # P2 - Total Cloudpoint Satellite 
 p2 <- basemap +
   # vessels points
+  # geom_point(data = ships, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2]),
+  #            color = "#FFA54F", size = 2.7, alpha = 0.05) +
   geom_point(data = ships, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2]),
-             color = "#FFA54F", size = 2.7, alpha = 0.05) +
+             color = "grey15", size = 1.3, alpha = 1) +
   geom_point(data = ships, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2]),
-             color = "grey15", size = 1.8, alpha = 0.5) +
-  geom_point(data = ships, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2]),
-             color = "darkorange2", size = 0.75, alpha = 0.45) +
+             color = "darkorange4", size = 0.7, alpha = 1) +
   
   # vessel points (fishing area)
+  # geom_point(data = ships_f, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2]),
+  #           color = "#FFA54F", size = 3.6, alpha = 0.1) +
   geom_point(data = ships_f, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2]),
-             color = "#FFA54F", size = 3.6, alpha = 0.1) +
+             color = "grey15", size = 1.3, alpha = 0.8) +
   geom_point(data = ships_f, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2]),
-             color = "grey15", size = 2.9, alpha = 0.8) +
-  geom_point(data = ships_f, aes(x = st_coordinates(geometry)[, 1], y = st_coordinates(geometry)[, 2]),
-             color = "orange", size = 1.7, alpha = 0.8) 
+             color = "orange", size = 0.7, alpha = 1) 
   
   # plot info
 #  annotate("text", x = 2.7478, y = 39.4635, label = "Satellite", parse = TRUE, family = "Arial",
@@ -285,5 +288,74 @@ ggsave(p_svg, p, width = 20, height = 12, units="cm", dpi=350, bg="white")
 
 
 
+# ------------------------------------------------------------------------------
+# 3) Scatter plot of lengths between AIS and digitalized (Fig 4a)  -------------
 
 
+# load data of AIS and satellite pairs of ships detected
+pairs <- read.csv("data/output/ais/length_ais_sat_pairs.csv")
+# filter ships distance >= 50
+pairs <- pairs %>% filter(dist <= 50)
+
+pairs <- pairs %>% filter(ais_length <= 100)
+pairs <- pairs %>% filter(sat_length <= 100)
+
+# statistics models 
+model <- lm(sat_length ~ ais_length, data = pairs) # Modelo de regresión lineal
+
+# slope and intersects of the line
+intercept <- round(coef(model)[1], 2)
+slope <- round(coef(model)[2], 2)
+r_squared <- round(summary(model)$r.squared, 2)
+
+
+
+# scatter plot and regression line
+p <- ggplot(pairs, aes(x = ais_length, y = sat_length)) +
+  
+    # points
+    geom_point(size = 2.3, color = "darkolivegreen3", alpha = 0.35, ) + 
+    # line
+    geom_smooth(method = "lm", color = "grey10", size = 1.4, alpha = 0.5, se = FALSE) +
+    geom_smooth(method = "lm", color = "darkolivegreen4", size = 1, fill = "grey70", se = TRUE) +
+
+  
+    # axys limit
+    ylim(c(0, 100)) +
+    xlim(c(0, 100)) +
+    coord_cartesian(xlim = c(5,49), ylim = c(5,55)) +
+  
+    # annotate
+    annotate("text", x = 9, y = 55, 
+                 label = paste("y =", intercept, "+", slope, "x\nR² =", r_squared),
+                 # label = paste("R² =", r_squared), 
+                 color = "grey40", size = 3.25, hjust = 0) + 
+    # labels
+    labs(x = "AIS lenght (m)", y = "Satellite lenght (m)", color = "grey15") +
+        
+    # theme
+    theme_bw() +
+    theme(axis.title.x = element_text(family = "Arial", size = 9, colour = "grey35"),
+        axis.title.y = element_text(family = "Arial", size = 9, colour = "grey35"),
+        # axis labels
+        axis.text.y = element_text(size = 10, family = "Arial"),
+        axis.text.x = element_text(size = 10, family = "Arial"),
+        axis.ticks = element_line(size = 0.6),
+        axis.ticks.length = unit(-6, "pt"),  # negative lenght -> ticks inside the plot 
+        # panel
+        panel.border = element_rect(color = "black", fill = NA, size = 1),
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        # legend
+        legend.position = "None")
+
+
+p
+
+
+
+
+p_png <- "fig/fig4_1.png"
+p_svg <- "fig/fig4_1.svg"
+ggsave(p_png, p, width = 10, height = 12, units="cm", dpi=350, bg="white")
+ggsave(p_svg, p, width = 10, height = 12, units="cm", dpi=350, bg="white")
