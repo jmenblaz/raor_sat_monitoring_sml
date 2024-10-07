@@ -818,7 +818,7 @@ df_final <- df_final %>%
 
 # plot - heatmap ------------------ 
 
-colRamp <- colorRampPalette(c('#B9D3EE','#f9f4f4','#C7C7C7','#ABABAB','#8B8682','#404040'))(50)
+colRamp <- colorRampPalette(c('#B9D3EE','#FFFAFA','#C7C7C7','#ABABAB','#8B8682','#404040'))(50)
 
 
 
@@ -828,14 +828,13 @@ colRamp <- colorRampPalette(c('#B9D3EE','#f9f4f4','#C7C7C7','#ABABAB','#8B8682',
 
 p6 <- ggplot(df_final, aes(y = month_day, x = factor(year), fill = perc_clouds)) +
         # tiles color and border,
-        geom_tile(color = "grey95",
-                  lwd = 0.25) +
+        geom_tile(color = "white",
+                  lwd = 1) +
         # tiles labels
         geom_text(aes(label = perc_clouds), color = "grey20", size = 3, family = "Arial") +
         # fill color
-       #  scale_fill_viridis_c(option = "plasma", na.value = "white") +  # Colores con viridis, grey para NAs
         scale_fill_gradientn(colors = colRamp,
-                             guide = guide_colorbar(frame.colour = "black", ticks.colour = "black", title = ""),
+                             # guide = guide_colorbar(frame.colour = "black", ticks.colour = "black", title = ""),
                              na.value = "#FFFFFF") +
         scale_y_discrete(position = "right") +  # Y axis on right
         # theme 
