@@ -142,7 +142,6 @@ write.csv(pairs_ais_ais,"data/output/ais/length_ais_ais_pairs.csv", row.names = 
 # -----------------------------------------------------------------------------
 # Statistics
 
-# export / save csv
 pairs <- read.csv("data/output/ais/length_ais_sat_pairs.csv")
 
 # filter neighbors with >= 50m distance

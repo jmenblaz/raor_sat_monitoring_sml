@@ -3,6 +3,7 @@
 
 # Set computer
 cpu <- "david-pc"  # "pc", "mac"
+cpu <- "jmb"
 
 # Load required packages
 pacman::p_load("data.table", "tidyr", "dplyr", "lubridate", "stringr", "janitor", "ncdf4", "reshape2", # data manipulation

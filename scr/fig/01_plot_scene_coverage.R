@@ -77,7 +77,11 @@ p1 <- ggplot() +
         legend.text = element_text(size = 10))
 p1
 
-
+# export / save plot
+p_png <- "fig/fig2_2.png"
+p_svg <- "fig/fig2_2.svg"
+ggsave(p_png, p1, width=13, height=15, units="cm", dpi=350, bg="white")
+ggsave(p_svg, p1, width=13, height=15, units="cm", dpi=350, bg="white")
 
 # 2.2 Scene coverage in study area --------------------------------------------
 

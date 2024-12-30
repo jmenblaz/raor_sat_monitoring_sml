@@ -355,7 +355,7 @@ ggsave(p_svg, p2b, width=14, height=8, units="cm", dpi=350, bg="white")
 
 
 
-
+# -----------------------------------------------------------------------------
 # 3) Minutes from sunrise of timestamps Planet scene ---------------------------
 
 # data
@@ -365,13 +365,14 @@ df <- read.csv("data/output/scene_data.csv")
 p3 <- ggplot(data = df, aes(x = min_from_sunrise)) +
   # add histogram
   geom_histogram(aes(y=..density..), fill="grey80") +
+  # geom_histogram() +
   # add density plot
   geom_density(colour = "#FF8828", fill="#F8D6BA", alpha = 0.75, size = 0.75) +
   # mean line
   geom_vline(aes(xintercept=mean(min_from_sunrise)),
              color="grey20", linetype="dashed", size = 0.4) +
   # labels text
-  ylab("density") + xlab("minutes") +
+  ylab("N.º Scenes") + xlab("Time from sunrise (min)") +
   # theme
   theme_bw() +
   theme(axis.title.x = element_text(family = "Arial", size = 9, colour = "grey35"),
@@ -388,10 +389,31 @@ p3 <- ggplot(data = df, aes(x = min_from_sunrise)) +
 p3
 
 # save plot
-p_png <- "fig/fig4_3.png"
-p_svg <- "fig/fig4_3.svg"
+p_png <- "fig/fig2_1.png"
+p_svg <- "fig/fig2_1.svg"
 ggsave(p_png, p3, width=9, height=8, units="cm", dpi=300, bg="white")
 ggsave(p_svg, p3, width=9, height=8, units="cm", dpi=300, bg="white")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
