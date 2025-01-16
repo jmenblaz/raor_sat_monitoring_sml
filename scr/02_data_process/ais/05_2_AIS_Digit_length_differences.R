@@ -6,6 +6,7 @@
 
 # Version 2: Using pairs of ships identfied by Satellite and AIS (distance to neares ship =< 50)
 #      1) Select pairs of vessel identified by methods (nearest AIS and satellite records)
+#       1.1) Add speed information in AIS and navigating or anchored class to satellite digitization
 #      2) Statistical analysis of differences (t-test)
 
 
@@ -25,6 +26,7 @@ library(ggplot2)
 df_gpkg <- st_read("data/output/scene_data.gpkg")
 
 
+
 # load AIS boat position interpolated and satellite vessels
 ais <- read.csv("data/output/ais_scenes_interpolated.csv")
 sat <- read.csv("data/output/shipProc.csv", sep = ";")
@@ -36,18 +38,23 @@ ais <- ais %>% filter(length != 0)
 
 # prepare satellite data
 sat <- sat %>%
-  # Note: not filter duplicateds due we work by scene
+  # Note: not filter duplicated due we work by scene
+  #       not filter by navigating ships in order to compare with AIS speed and status class
   # filter(duplicated == FALSE) %>%   
-  filter(navigationStatus != "navigating") %>%  
+  # filter(navigationStatus != "navigating") %>%  
   filter(lowCertainty == FALSE)   
 
 # select variables of interest
-sat <- sat %>% select(item_id, shipType, longitude, latitude, length_m)
-ais <- ais %>% select(img_ID, type, longitude, latitude, length)
+sat <- sat %>% select(item_id, shipType, longitude, latitude, length_m, navigationStatus)
+ais <- ais %>% select(img_ID, type, longitude, latitude, length, speed)
 
 # add method field
 sat$method <- "satellite"
 ais$method <- "ais"
+
+# add empty colums of navigation status and speed for AIS and Sat dataset
+sat$speed <- NA
+ais$navigationStatus <- NA
 
 # standardized fields names between databases
 sat <- sat %>%
@@ -108,6 +115,8 @@ for (id in ids) {
                            ais_type = ais_ship$type,
                            sat_type = sat_ship$type,
                            dist = ais_ship$dist,
+                           ais_speed = ais_ship$speed, # meters/second due it provide for move interpolation
+                           sat_navigationStatus = sat_ship$navigationStatus,
                            # for check that the pairs are correctly made 
                            # between AIS-Satellite
                            ais_method = ais_ship$method,
@@ -146,8 +155,8 @@ pairs <- read.csv("data/output/ais/length_ais_sat_pairs.csv")
 
 # filter neighbors with >= 50m distance
 pairs$dist <- as.numeric(pairs$dist)
-pairs <- pairs %>% filter(dist <= 50)
-
+pairs <- pairs %>% filter(dist <= 45)
+pairs <- pairs %>% filter(ais_length < 200) # one outlier for 500 in AIS data
 
 # t-student
 # Differences between number of vessel identified by method per scene
@@ -162,17 +171,62 @@ sd(pairs$sat_length)
 
 
 # Pearson correlation
-pearson_corr <- cor(pairs$ais_length, pairs$sat_length, method = "pearson")
+pearson_corr <- cor.test(pairs$ais_length, pairs$sat_length, method = "pearson")
 print(pearson_corr)
+
+
+
+
+# RMS
+rmse <- sqrt(mean((pairs$sat_length - pairs$ais_length)^2))
+cat("RMSE:", rmse, "\n")
+# Mostrar el resultado
+print(rmse)
+
+
+# plot
+
+pearson_corr <- cor(pairs$ais_length, pairs$sat_length, method = "pearson")
 
 ggplot(pairs, aes(x = sat_length, y = ais_length)) +
   geom_point() +
   labs(title = "Scatter Plot of AIS Length vs Sat Length",
        x = "Sat Length",
        y = "AIS Length") +
-  ylim(0, 100) +
+  ylim(0, 50) +
   theme_minimal() +
   stat_smooth(method = "lm", col = "red") +  # Añadir la línea de tendencia
   annotate("text", x = max(pairs$sat_length), y = 90, label = paste("Pearson: ", round(pearson_corr, 2)), hjust = 1)
+
+
+
+
+
+
+# Calcular el modelo lineal
+lm_model <- lm(ais_length ~ sat_length, data = pairs)
+
+# Extraer los coeficientes de la ecuación
+intercept <- coef(lm_model)[1]
+slope <- coef(lm_model)[2]
+
+# Crear la ecuación como texto
+equation <- paste0("y = ", round(intercept, 2), " + ", round(slope, 2), "x")
+
+# Añadir al gráfico
+ggplot(pairs, aes(x = sat_length, y = ais_length)) +
+  geom_point() +
+  labs(title = "Scatter Plot of AIS Length vs Sat Length",
+       x = "Sat Length",
+       y = "AIS Length") +
+  ylim(0, 50) +
+  theme_minimal() +
+  stat_smooth(method = "lm", col = "red") +  # Añadir la línea de tendencia
+  annotate("text", x = max(pairs$sat_length), y = 90, 
+           label = paste("Pearson: ", round(pearson_corr, 2), "\n", equation), 
+           hjust = 1)
+
+
+
 
 

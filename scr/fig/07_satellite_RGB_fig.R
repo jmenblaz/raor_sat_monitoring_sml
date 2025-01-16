@@ -4,12 +4,15 @@
 
 # Plot satellite img before and after the open of the seassonal fishing ban
 
+# Final image version (zoomed) created in QGIS
+
 library(sf)
 library(ggplot2)
 library(tidyverse)
 library(raster)
 library(prismatic)
 library(gridExtra)
+
 
 # load fishing area
 fa <- read_sf("data/gis/fa/fishing_area.gpkg")
@@ -52,9 +55,16 @@ prismatic::color(rgb(r = d$Red,
 # study area extension
 sa <- read_sf("data/gis/study_area/study_area_raor.shp")
 sa_extent <- st_bbox(sa)
-# create xl and yl object for ggplot
-xl <- c((sa_extent["xmax"] + 0.0), (sa_extent["xmin"] - 0.0)) 
-yl <- c((sa_extent["ymax"] + 0.0), (sa_extent["ymin"] - 0.0))
+# # create xl and yl object for ggplot
+# xl <- c((sa_extent["xmax"] + 0.0), (sa_extent["xmin"] - 0.0)) 
+# yl <- c((sa_extent["ymax"] + 0.0), (sa_extent["ymin"] - 0.0))
+
+# For lastest image version (zoomed)
+xl <- c((sa_extent["xmax"] - 0.007), (sa_extent["xmin"] + 0.012)) 
+yl <- c((sa_extent["ymax"] - 0.017), (sa_extent["ymin"] + 0.0004))
+
+# add shadow for no-fishing area
+no_fa <- st_sym_difference(st_geometry(sa), st_geometry(fa))
 
 
 # b, before
@@ -64,8 +74,10 @@ pb <- ggplot() +
               show.legend = FALSE) +
   scale_fill_identity() +
   # fishing area
-  geom_sf(data = fa, fill = "tan1", colour = "darkorange2", size = 1, alpha = 0.02) +
-  geom_sf(data = fa, fill = "NA", colour = "darkorange2", size = 1, alpha = 1) +
+  # geom_sf(data = fa, fill = "tan1", colour = "darkorange2", size = 1, alpha = 0.02) +
+  # geom_sf(data = fa, fill = "NA", colour = "darkorange2", size = 1, alpha = 1) +
+  # plot no fishing area
+  geom_sf(data = no_fa, fill = "white", colour = "transparent", size = 1, alpha = 0) +
   # spatial extension
   coord_sf(xlim = xl, ylim = yl, expand = F) +
   # Theme
@@ -78,7 +90,7 @@ pb <- ggplot() +
         panel.border = element_rect(color = "black", fill = NA, size = 1.2),
         panel.background = element_blank(),
         panel.grid = element_blank())
-pb
+# pb
 
 
 # after
@@ -88,8 +100,10 @@ pd <- ggplot() +
               show.legend = FALSE) +
   scale_fill_identity() +
   # fishing area
-  geom_sf(data = fa, fill = "tan1", colour = "darkorange2", size = 1, alpha = 0.02) +
-  geom_sf(data = fa, fill = "NA", colour = "darkorange2", size = 1, alpha = 1) +
+  # geom_sf(data = fa, fill = "tan1", colour = "darkorange2", size = 1, alpha = 0.02) +
+  # geom_sf(data = fa, fill = "NA", colour = "darkorange2", size = 1, alpha = 1) +
+  # plot no fishing area
+  geom_sf(data = no_fa, fill = "white", colour = "transparent", size = 1, alpha = 0) +
   # spatial extension
   coord_sf(xlim = xl, ylim = yl, expand = F) +
   # Theme
@@ -102,17 +116,18 @@ pd <- ggplot() +
         panel.border = element_rect(color = "black", fill = NA, size = 1.2),
         panel.background = element_blank(),
         panel.grid = element_blank())
-pd
+# pd
 
 
 # combine
+# margin = theme(plot.margin = unit(c(2,2,2,2), "cm"))
 p <- grid.arrange(pb, pd, ncol = 2)
 p
 
 
 # export / save plot
-p_png <- "fig/fig_sat.png"
-p_svg <- "fig/fig_sat.svg"
+p_png <- "fig/fig_sat_zoomed.png"
+p_svg <- "fig/fig_sat_zoomed.svg"
 ggsave(p_png, p, width=25, height=12, units="cm", dpi=400, bg="white")
 ggsave(p_svg, p, width=25, height=12, units="cm", dpi=400, bg="white")
 

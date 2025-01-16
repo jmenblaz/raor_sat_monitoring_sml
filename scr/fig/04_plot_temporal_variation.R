@@ -900,39 +900,156 @@ ggsave(p_svg, p6, width=10, height=22, units="cm", dpi=350, bg="white")
 
 
 
-
-
-
-
-
-
-
-
-
+# supplementary figure 
 
 # 7) Number of fishing ships identify by methods in week days --------------------
 #    in the study time period
+
+# fishing area
+fa <- read_sf("data/gis/fa/fishing_area.gpkg")
 
 # 7.1 ) Prepare data--------------------------------------
 # 7.1.1) Satellite ----------
 df <- read.csv("data/output/shipProc.csv", sep = ";")
 # filter
 df <- df %>% 
-  filter(duplicated == FALSE) 
-# filter(navigationStatus == "anchor")
+  filter(duplicated == FALSE) %>%
+  filter(navigationStatus == "anchor")
+
+
+# convert to sf
+df <- st_as_sf(df, coords = c("longitude", "latitude"))
+
+# add CRS of fa
+st_crs(df) <- st_crs(fa)
+
+# filer interpolated position inside fishing area
+df <- st_intersection(df, fa)
+
 
 # year
-df$acquired <- as.POSIXct(df$acquired)
+df$acquired <- as.POSIXct(df$acquired, format = "%d/%m/%Y %H:%M", tz = "UTC")
 df$year <- year(df$acquired)
 # day week (english)
 Sys.setlocale("LC_TIME", "English")
 df$wday <- lubridate::wday(df$acquired, label = TRUE, abbr = FALSE)
+
+
+# supllementary figure -----------------------------------------------------------
+
+# Reordenar niveles para que la semana comience el lunes
+df$wday <- factor(df$wday, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), ordered = TRUE)
+
+# Verificar el orden de los niveles
+levels(df$wday)
+
+# bar plot
+library(ggplot2)
+
+# Crear el barplot con la semana comenzando el lunes
+p7 <- ggplot(df, aes(x = wday)) +
+  geom_bar(fill = "#FF8828", alpha = 0.5, color = "black") +
+  labs(
+    y = "Number of ship in fishing area"
+  ) +
+  # theme
+  theme_bw() +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_text(family = "Arial", size = 12, colour = "grey35"),
+        # axis labels
+        axis.text.y = element_text(size = 12, family = "Arial"),
+        axis.text.x = element_text(size = 12, family = "Arial",
+                                   angle = 90, hjust = 1, vjust = 0.5),
+        axis.ticks = element_line(size = 0.4),
+        axis.ticks.length = unit(5, "pt"),  # negative lenght -> ticks inside the plot 
+        # panel
+        panel.grid.major.y = element_line(color = "grey95", size = 0.5), # Añadir líneas horizontales
+        panel.grid.minor.y = element_blank(), # Sin líneas menores
+        panel.grid.major.x = element_blank(),  # Sin líneas verticales
+        panel.border = element_rect(color = "black", fill = NA, size = 1),
+        panel.background = element_blank(),
+        # panel.grid = element_blank(),
+  )
+
+p7
+
+
+
+
+
+
+
+
+
+
+
+# Crear una nueva variable para destacar días específicos
+df$highlight <- ifelse(df$wday %in% c("Friday", "Saturday", "Sunday", "Tuesday"), "Fishing", "Fishing ban")
+
+# bar plot con colores personalizados
+
+p7 <- ggplot(df, aes(x = wday, fill = highlight)) +
+  geom_bar(color = "black") +
+  geom_text(stat = 'count', aes(label = ..count..), color = "grey50" , vjust = -0.5, size = 3.5) +
+
+  scale_fill_manual(values = c("Fishing" = "#E57717", "Fishing ban" = "#F8D6BA")) +  # custom colors
+  labs(
+    y = "N.º Vessels in fishing area"
+  ) +
+  # theme
+  theme_bw() +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_text(family = "Arial", size = 12, colour = "black",
+                                    margin = margin(r = 15)),
+        # axis labels
+        axis.text.y = element_text(size = 12, family = "Arial"),
+        axis.text.x = element_text(size = 12, family = "Arial",
+                                   angle = 90, hjust = 1, vjust = 0.5),
+        axis.ticks = element_line(size = 0.4),
+        axis.ticks.length = unit(5, "pt"),  # negative length -> ticks inside the plot 
+        # panel
+        panel.grid.major.y = element_line(color = "grey95", size = 0.5),  # Líneas horizontales
+        panel.grid.minor.y = element_blank(),  # Sin líneas menores
+        panel.grid.major.x = element_blank(),  # Sin líneas verticales
+        panel.border = element_rect(color = "black", fill = NA, size = 1.2),
+        panel.background = element_blank(),
+        # panel.grid = element_blank(),
+        # leyenda
+        legend.position = c(0, 1),  # Ubicar leyenda en la esquina superior izquierda
+        legend.justification = c(0, 1),  # Asegura que esté anclada a la esquina
+        legend.title = element_blank(),  # Eliminar el título de la leyenda
+        legend.background = element_blank(),
+        legend.text = element_text(size = 11, family = "Arial"),
+        legend.key.size = unit(0.7, "cm"),  # Ajustar tamaño de las claves de la leyenda
+        legend.direction = "horizontal" 
+  )
+
+p7
+
+
+
+
+# save plot
+p_png <- "fig/supfig_barplot.png"
+p_svg <- "fig/supfig_barplot.svg"
+ggsave(p_png, p7, width=23, height=16, units="cm", dpi=350, bg="white")
+ggsave(p_svg, p7, width=23, height=16, units="cm", dpi=350, bg="white")
+
+
+
+# supllementary figure ------------------------------
+
+
+
 
 # records by weekday
 df <- df %>%
   group_by(year, wday) %>%
   summarise(num_registros = n())
 df <- na.omit(df)
+
+
+
 
 # numeric sequentation of weekdays
 df <- df %>%
@@ -958,12 +1075,22 @@ ais <- ais %>%
   distinct(mmsi, timestamp, .keep_all = TRUE)
 
 # year
-ais$timestamp <- as.POSIXct(ais$timestamp)
+ais$acquired <- as.POSIXct(ais$timestamp, format = "%d/%m/%Y %H:%M", tz = "UTC")
 ais$year <- year(ais$timestamp)
+
 
 # day week (english)
 Sys.setlocale("LC_TIME", "English")
 ais$wday <- lubridate::wday(ais$timestamp, label = TRUE, abbr = FALSE)
+
+# convert to sf
+ais <- st_as_sf(ais, coords = c("longitude", "latitude"))
+
+# add CRS of fa
+st_crs(ais) <- st_crs(fa)
+
+# filer interpolated position inside fishing area
+ais <- st_intersection(ais, fa)
 
 # records by weekday
 ais <- ais %>%
@@ -1005,7 +1132,6 @@ p7 <- ggplot() +
               color = "deepskyblue4", se = F, alpha = 0.1) +
   geom_smooth(data = ais, aes(x = wday_num, y = num_registros), size = 0.75, 
               color = "deepskyblue3", fill = "lightblue3") +
-  # Fixed Camera
   
   # labels sequential days created
   scale_x_continuous(breaks = 1:length(days), labels = days) +
@@ -1028,6 +1154,8 @@ p7 <- ggplot() +
   )
 
 p7
+
+
 
 
 

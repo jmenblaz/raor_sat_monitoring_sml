@@ -145,18 +145,25 @@ ais_result <- rbindlist(foreach(l = 1:nrow(df_gpkg), .packages = c("sf", "dplyr"
       else {
         # Different position -> Interpolation
         
-        # interpolation by each second
-        # ais_interp <- interpolateTime(m, time=as.difftime(1, units= "secs"), spaceMethod='euclidean')
+      ### a) interpolation by each second -----------
+        ais_interp <- interpolateTime(m, time=as.difftime(1, units= "secs"), spaceMethod='euclidean')
+        # add speed for interpolate position in each unit time ("secs"...)
+        ais_interp$speed <- c(speed(ais_interp), NA) # Speed for segments, with NA for the last segment
         
+        
+      ### b) interpolation by unique scene timestamp --------
         # check if min of timstamps of move object is higher than the scene timestamp
         # T == NO Interpolation
         # F == Interpolation
-        if (tstamp < min(m@timestamps) || tstamp > max(m@timestamps))
-          next
         
-        # interpolation by unique scene timestamp
-        ts <- as.POSIXct(tstamp,  format="%Y-%m-%d %H:%M:%S")
-        ais_interp <- interpolateTime(m, time=ts, spaceMethod='euclidean')
+        # if (tstamp < min(m@timestamps) || tstamp > max(m@timestamps))
+        #   next
+        # 
+        # # b) interpolation by unique scene timestamp
+        # ts <- as.POSIXct(tstamp,  format="%Y-%m-%d %H:%M:%S")
+        # ais_interp <- interpolateTime(m, time=ts, spaceMethod='euclidean')
+        
+        
         
         # convert positions into dataframe
         p <- as(ais_interp, "data.frame")
@@ -192,10 +199,10 @@ ais_result <- rbindlist(foreach(l = 1:nrow(df_gpkg), .packages = c("sf", "dplyr"
     
     # filter ships using acquired time scene
     # remove ships with >= acquired time scene
-    # a) note: select only ships (or position) before the scene capture
+  ### a) note: select only ships (or position) before the scene capture
     # ship_scene <- ship_scene |> filter(timestamp <= tstamp)
     
-    # b) note: select only ship position at the same acquire time 
+  ### b) note: select only ship position at the same acquire time 
     #       OR ships with no movement or interpolation present before the scene capture
     ship_scene <- ship_scene |> filter(timestamp == tstamp | sensor == "original_position",)
     
@@ -206,6 +213,9 @@ ais_result <- rbindlist(foreach(l = 1:nrow(df_gpkg), .packages = c("sf", "dplyr"
     # select geometries from scene to avoid add other fields
     scene_geom <- scene["geom"]
     # intersection
+    
+    # note: ship_scene geometry is masked by cloud cover,
+    # AIS interpolated position are outside the clouds
     ship_scene <- st_intersection(scene_geom, ship_scene)
     
     # convert from sf to df to rbinlist paralell
@@ -218,14 +228,14 @@ ais_result <- rbindlist(foreach(l = 1:nrow(df_gpkg), .packages = c("sf", "dplyr"
     else {
       ship_scene
     }
-
+    
     }
   
 }, fill = TRUE)
 
 
-Sys.time() - t  # ≈ 1.30 min
-stopCluster()
+Sys.time() - t  # ≈ 1.30 min or # 8 min for speed interpolation to
+stopCluster(cl)
 
 # process result ------
 
@@ -242,3 +252,5 @@ ais_result <- unique(ais_result)
 
 # save / export
 write.csv(ais_result, "data/output/ais_scenes_interpolated.csv")
+
+

@@ -294,8 +294,8 @@ ggsave(p_svg, p, width = 20, height = 12, units="cm", dpi=350, bg="white")
 
 # load data of AIS and satellite pairs of ships detected
 pairs <- read.csv("data/output/ais/length_ais_sat_pairs.csv")
-# filter ships distance >= 50
-pairs <- pairs %>% filter(dist <= 50)
+# filter ships distance >= 45 (maximum AIS lenght)
+pairs <- pairs %>% filter(dist <= 45)
 
 pairs <- pairs %>% filter(ais_length <= 100)
 pairs <- pairs %>% filter(sat_length <= 100)
@@ -317,7 +317,7 @@ p <- ggplot(pairs, aes(x = ais_length, y = sat_length)) +
     geom_point(size = 2.3, color = "darkolivegreen3", alpha = 0.35, ) + 
     # line
     geom_smooth(method = "lm", color = "grey10", size = 1.4, alpha = 0.5, se = FALSE) +
-    geom_smooth(method = "lm", color = "darkolivegreen4", size = 1, fill = "grey70", se = TRUE) +
+    geom_smooth(method = "lm", color = "darkolivegreen4", size = 1, fill = "grey80", se = TRUE) +
 
   
     # axys limit
@@ -326,7 +326,7 @@ p <- ggplot(pairs, aes(x = ais_length, y = sat_length)) +
     coord_cartesian(xlim = c(5,49), ylim = c(5,55)) +
   
     # annotate
-    annotate("text", x = 9, y = 55, 
+    annotate("text", x = 33, y = 10, 
                  label = paste("y =", intercept, "+", slope, "x\nR² =", r_squared),
                  # label = paste("R² =", r_squared), 
                  color = "grey40", size = 3.25, hjust = 0) + 

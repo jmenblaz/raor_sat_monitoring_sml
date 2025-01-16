@@ -117,6 +117,8 @@ write.csv(pairs,"data/output/cross_validation/length_dig1_dig2_pairs.csv", row.n
 # -----------------------------------------------------------------------------
 # Statistics
 
+# Final version of plot in "fig/03_cross_validation.R"
+
 pairs <- read.csv("data/output/cross_validation/length_dig1_dig2_pairs.csv")
 # 184
 
@@ -140,6 +142,7 @@ pearson_correlation <- cor(pairs$dig1_length, pairs$dig2_length)
 print(rmse)
 print(pearson_correlation)
 
+summary(pairs$dist)
 
 
 # t-student
