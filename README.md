@@ -1,4 +1,4 @@
-# Leveraging earth observation data to monitor boat-based recreational fishing - R Code
+## Leveraging earth observation data to monitor boat-based recreational fishing - R Code
 
 (DOI)
 
@@ -19,8 +19,8 @@ See Data availability statement in the published article
 
 ### License
 
-Copyright (c) 2020 David March\
-Licensed under the [MIT License](https://github.com/SpatialMarine/raor_sat_monitoring_sml/blob/main/LICENSE).
+Copyright (c) 2025 Javier Menéndez-Blázquez / \@jmenblaz\
+Licensed under the [MIT License](https://github.com/SpatialMarine/raor_sat_monitoring_sml/blob/main/LICENSE)
 
 ### Acknowledgements
 
