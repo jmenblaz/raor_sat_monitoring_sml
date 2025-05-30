@@ -9,7 +9,7 @@ Javier Menéndez-Blázquez, Mara Segovia, and David March. Leveraging earth obse
 ### Repository structure
 
 | Folder | Description |
-|-------------|------------------------------------------------|
+|----|----|
 | *fun* | custom functions used into differenrt scripts in `scr` folder |
 | *scr* | R scripts used to perfomance the data process, analysis and visualization of the research study. |
 
@@ -24,4 +24,4 @@ Licensed under the [MIT License](https://github.com/SpatialMarine/raor_sat_monit
 
 ### Acknowledgements
 
-The study was supported by Generalitat Valenciana through the *Pla GenT* program (CIDEGENT/2021/058). MS acknowledges support from the TECMAR project [Organismo Autónomo Parques Nacionales (3002/2023)].
+The study was supported by Generalitat Valenciana through the *Pla GenT* program (CIDEGENT/2021/058) and the TECMAR project [Organismo Autónomo Parques Nacionales (3002/2023)]
