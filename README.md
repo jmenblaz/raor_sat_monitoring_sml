@@ -1,6 +1,6 @@
 ## Leveraging earth observation data to monitor boat-based recreational fishing - R Code
 
-(DOI)
+![](images/zenodo.15551823-1.svg)
 
 This repository provides the R code used in the following research paper:
 
@@ -9,9 +9,9 @@ Javier Menéndez-Blázquez, Mara Segovia, and David March. Leveraging earth obse
 ### Repository structure
 
 | Folder | Description |
-|----|----|
-| *fun* | custom functions used into differenrt scripts in `scr` folder |
-| *scr* | R scripts used to perfomance the data process, analysis and visualization of the research study. |
+|------------------------------------|------------------------------------|
+| *fun* | custom functions used into different scripts in `scr` folder |
+| *scr* | R scripts used to performance the data process, analysis and visualization of the research study. |
 
 ### Data availability
 
