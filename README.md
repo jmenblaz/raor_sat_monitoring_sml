@@ -21,7 +21,7 @@ See Data availability statement in the published article
 
 Copyright (c) 2025 Javier Menéndez-Blázquez
 
-\@jmenblaz [![](images/github-mark-white.png){width="22" height="22"}](https://github.com/jmenblaz) [![](images/linkedin_short.svg){width="22"}](https://www.linkedin.com/in/jmenendezblazquez/)\
+\@jmenblaz ![](images/github-mark-white.svg){width="22" height="22"} \
 
 Licensed under the [MIT License](https://github.com/SpatialMarine/raor_sat_monitoring_sml/blob/main/LICENSE)
 
