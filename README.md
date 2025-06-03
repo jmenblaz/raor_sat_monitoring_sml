@@ -4,12 +4,12 @@
 
 This repository provides the R code used in the following research paper:
 
-Javier Menéndez-Blázquez ![](images/orcid.svg){width="3%"}, Mara Segovia, and David March. Leveraging earth observation data to monitor boat-based recreational fishing.
+Javier Menéndez-Blázquez <img src="images/orcid.svg" alt="ORCID" width="20"/>, Mara Segovia, and David March. Leveraging earth observation data to monitor boat-based recreational fishing.
 
 ### Repository structure
 
 | Folder | Description |
-|------------------------------------|------------------------------------|
+|----|----|
 | *fun* | custom functions used into different scripts in `scr` folder |
 | *scr* | R scripts used to performance the data process, analysis and visualization of the research study. |
 
@@ -21,7 +21,7 @@ See Data availability statement in the published article
 
 Copyright (c) 2025 Javier Menéndez-Blázquez
 
-\@jmenblaz ![](images/github-mark-white.svg){width="3%"} \
+[\@jmenblaz](https://github.com/jmenblaz) <img src="images/github-mark-white.svg" alt="GitHub logo" width="20"/>
 
 Licensed under the [MIT License](https://github.com/SpatialMarine/raor_sat_monitoring_sml/blob/main/LICENSE)
 
