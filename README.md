@@ -4,7 +4,7 @@
 
 This repository provides the R code used in the following research paper:
 
-Javier Menéndez-Blázquez <a href="https://orcid.org/0000-0002-1882-7896">, Mara Segovia, and David March. Leveraging earth observation data to monitor boat-based recreational fishing.
+Javier Menéndez-Blázquez <a href="https://orcid.org/0000-0002-1882-7896"><img src="images/orcid.svg" alt="ORCID logo" width="23"/></a>, Mara Segovia, and David March. Leveraging earth observation data to monitor boat-based recreational fishing.
 
 ### Repository structure
 
@@ -21,7 +21,7 @@ See Data availability statement in the published article
 
 Copyright (c) 2025 Javier Menéndez-Blázquez
 
-@jmenblaz <a href="https://github.com/jmenblaz"><img src="images/github-mark-white.svg" alt="GitHub logo" width="20"/></a>
+@jmenblaz <a href="https://github.com/jmenblaz"><img src="images/github-mark-white.svg" alt="GitHub logo" width="23"/></a> <a href="https://www.linkedin.com/in/jmenendezblazquez/"><img src="images/linkedin_short.svg" alt="Linkedin logo" width="23"/></a>
 
 Licensed under the [MIT License](https://github.com/SpatialMarine/raor_sat_monitoring_sml/blob/main/LICENSE)
 
