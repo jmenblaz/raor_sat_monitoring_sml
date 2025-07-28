@@ -17,6 +17,7 @@ library(dplyr)
 library(ggplot2)
 library(lubridate)
 library(gridExtra)
+library(sf)
 
 # 1) Number of vessel per day and year in satellite images
 
@@ -243,6 +244,8 @@ days <- format(days, "%m-%d")
 
 # 2.1 ) Prepare data--------------------------------------
 # 2.1.1) Satellite ----------
+
+
 method <- "satellite"
 path <- "data/output/fishing_effort/"
 df <- read.csv(paste0(path, method,"_fishing_effort_data.csv"))
@@ -546,6 +549,95 @@ ggsave(p_svg, p4, width=9, height=10, units="cm", dpi=350, bg="white")
 
 
 
+#################################
+#################################
+#################################
+
+
+
+
+
+# Figure 4 addressing reviewer comments -----------------------------------
+# Mean vessel count per day week 
+
+
+df <- read.csv("data/output/shipProc.csv", sep = ";") %>%
+  filter(duplicated == FALSE)
+
+df$acquired <- as.POSIXct(df$acquired, format = "%d/%m/%Y %H:%M")
+df$year <- year(df$acquired)
+Sys.setlocale("LC_TIME", "English")
+df$wday <- lubridate::wday(df$acquired, label = TRUE, abbr = FALSE)
+
+# Contar barcos y escenas por año y día de semana
+df_summary <- df %>%
+  group_by(year, wday, acquired) %>%
+  summarise(n_ships = n(), .groups = "drop") %>%
+  group_by(year, wday) %>%
+  summarise(
+    total_ships = sum(n_ships),
+    n_scenes = n_distinct(acquired),
+    mean_ships_per_scene = total_ships / n_scenes,
+    .groups = "drop"
+  )
+
+# Añadir número de día
+df_summary <- df_summary %>%
+  mutate(wday_num = as.numeric(factor(wday, levels = days)))
+
+
+
+
+ais <- read.csv("data/output/ais_scenes_interpolated.csv") %>%
+  distinct(mmsi, timestamp, .keep_all = TRUE)
+
+ais$timestamp <- as.POSIXct(ais$timestamp)
+ais$year <- year(ais$timestamp)
+Sys.setlocale("LC_TIME", "English")
+ais$wday <- lubridate::wday(ais$timestamp, label = TRUE, abbr = FALSE)
+
+# Suponiendo que "scene_id" es el identificador de cada escena/vista asociada en AIS
+# Si no lo tienes, reemplázalo por el identificador adecuado, o por fecha si cada timestamp es único
+ais_summary <- ais %>%
+  group_by(year, wday, timestamp) %>%
+  summarise(n_ships = n(), .groups = "drop") %>%
+  group_by(year, wday) %>%
+  summarise(
+    total_ships = sum(n_ships),
+    n_scenes = n_distinct(timestamp),
+    mean_ships_per_scene = total_ships / n_scenes,
+    .groups = "drop"
+  )
+
+ais_summary <- ais_summary %>%
+  mutate(wday_num = as.numeric(factor(wday, levels = days)))
+
+
+# Plot
+
+p4_mean <- ggplot() +
+  # SATELLITE
+  geom_point(data = df_summary, aes(x = wday_num, y = mean_ships_per_scene), 
+             color = "#FF8828", size = 2, alpha = 0.35) +
+  geom_smooth(data = df_summary, aes(x = wday_num, y = mean_ships_per_scene), 
+              color = "darkorange4", size = 1, se = FALSE) +
+  # AIS
+  geom_point(data = ais_summary, aes(x = wday_num, y = mean_ships_per_scene), 
+             color = "deepskyblue3", size = 2, alpha = 0.35) +
+  geom_smooth(data = ais_summary, aes(x = wday_num, y = mean_ships_per_scene), 
+              color = "deepskyblue4", size = 1, se = FALSE) +
+  scale_x_continuous(breaks = 1:length(days), labels = days) +
+  ylab("Mean number of ships per scene") + xlab("") +
+  theme_bw()
+
+p4_mean
+
+
+
+
+#################################
+#################################
+#################################
 
 
 
@@ -554,6 +646,18 @@ ggsave(p_svg, p4, width=9, height=10, units="cm", dpi=350, bg="white")
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+# ---------------------------------------------------------------------------
 # ----------------------------------------------------------------------------
 # 5) Daily annual temporal variation of ships with AIS and Satellite detection 
 
@@ -900,6 +1004,7 @@ ggsave(p_svg, p6, width=10, height=22, units="cm", dpi=350, bg="white")
 
 
 
+
 # supplementary figure 
 
 # 7) Number of fishing ships identify by methods in week days --------------------
@@ -910,26 +1015,34 @@ fa <- read_sf("data/gis/fa/fishing_area.gpkg")
 
 # 7.1 ) Prepare data--------------------------------------
 # 7.1.1) Satellite ----------
-df <- read.csv("data/output/shipProc.csv", sep = ";")
-# filter
-df <- df %>% 
-  filter(duplicated == FALSE) %>%
-  filter(navigationStatus == "anchor")
+
+# using fishing effort calculate per imaged /area
+
+df <- read.csv("data/output/fishing_effort/satellite_fishing_effort_data.csv")
+
+df$acquired <- as.POSIXct(df$timestamp, format = "%Y-%m-%d")
 
 
-# convert to sf
-df <- st_as_sf(df, coords = c("longitude", "latitude"))
+# df <- read.csv("data/output/shipProc.csv", sep = ";")
+# # filter
+# df <- df %>% 
+#   filter(duplicated == FALSE) %>%
+#   filter(navigationStatus == "anchor")
+# 
+# 
+# # convert to sf
+# df <- st_as_sf(df, coords = c("longitude", "latitude"))
+# 
+# # add CRS of fa
+# st_crs(df) <- st_crs(fa)
+# 
+# # filer interpolated position inside fishing area
+# df <- st_intersection(df, fa)
+# 
 
-# add CRS of fa
-st_crs(df) <- st_crs(fa)
-
-# filer interpolated position inside fishing area
-df <- st_intersection(df, fa)
-
-
-# year
-df$acquired <- as.POSIXct(df$acquired, format = "%d/%m/%Y %H:%M", tz = "UTC")
-df$year <- year(df$acquired)
+# # year
+# df$acquired <- as.POSIXct(df$acquired, format = "%d/%m/%Y %H:%M", tz = "UTC")
+# df$year <- year(df$acquired)
 # day week (english)
 Sys.setlocale("LC_TIME", "English")
 df$wday <- lubridate::wday(df$acquired, label = TRUE, abbr = FALSE)
@@ -943,32 +1056,31 @@ df$wday <- factor(df$wday, levels = c("Monday", "Tuesday", "Wednesday", "Thursda
 # Verificar el orden de los niveles
 levels(df$wday)
 
+str(df)
+
 # bar plot
 library(ggplot2)
 
 # Crear el barplot con la semana comenzando el lunes
-p7 <- ggplot(df, aes(x = wday)) +
-  geom_bar(fill = "#FF8828", alpha = 0.5, color = "black") +
+p7 <- ggplot(df, aes(y = ship_dens_km2_fa_imaged, x = wday)) +
+  geom_col(fill = "#FF8828", alpha = 0.5, color = "black") +  # <- aquí el cambio
   labs(
     y = "Number of ship in fishing area"
   ) +
-  # theme
   theme_bw() +
-  theme(axis.title.x = element_blank(),
-        axis.title.y = element_text(family = "Arial", size = 12, colour = "grey35"),
-        # axis labels
-        axis.text.y = element_text(size = 12, family = "Arial"),
-        axis.text.x = element_text(size = 12, family = "Arial",
-                                   angle = 90, hjust = 1, vjust = 0.5),
-        axis.ticks = element_line(size = 0.4),
-        axis.ticks.length = unit(5, "pt"),  # negative lenght -> ticks inside the plot 
-        # panel
-        panel.grid.major.y = element_line(color = "grey95", size = 0.5), # Añadir líneas horizontales
-        panel.grid.minor.y = element_blank(), # Sin líneas menores
-        panel.grid.major.x = element_blank(),  # Sin líneas verticales
-        panel.border = element_rect(color = "black", fill = NA, size = 1),
-        panel.background = element_blank(),
-        # panel.grid = element_blank(),
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(family = "Arial", size = 12, colour = "grey35"),
+    axis.text.y = element_text(size = 12, family = "Arial"),
+    axis.text.x = element_text(size = 12, family = "Arial",
+                               angle = 90, hjust = 1, vjust = 0.5),
+    axis.ticks = element_line(size = 0.4),
+    axis.ticks.length = unit(5, "pt"),
+    panel.grid.major.y = element_line(color = "grey95", size = 0.5),
+    panel.grid.minor.y = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    panel.background = element_blank()
   )
 
 p7
@@ -977,61 +1089,58 @@ p7
 
 
 
-
-
-
-
-
-
-# Crear una nueva variable para destacar días específicos
+# new variable for higlight the day
 df$highlight <- ifelse(df$wday %in% c("Friday", "Saturday", "Sunday", "Tuesday"), "Fishing", "Fishing ban")
 
-# bar plot con colores personalizados
 
-p7 <- ggplot(df, aes(x = wday, fill = highlight)) +
-  geom_bar(color = "black") +
-  geom_text(stat = 'count', aes(label = ..count..), color = "grey50" , vjust = -0.5, size = 3.5) +
+library(dplyr)
 
-  scale_fill_manual(values = c("Fishing" = "#E57717", "Fishing ban" = "#F8D6BA")) +  # custom colors
+df_summary <- df %>%
+  group_by(wday, highlight) %>%
+  summarise(total_density = mean(ship_dens_km2_fa_imaged), .groups = "drop")
+
+
+
+
+# bar plot with custom colors
+
+p7 <- ggplot(df_summary, aes(x = wday, y = total_density, fill = highlight)) +
+  geom_col(color = "black") +
+  geom_text(aes(label = round(total_density, 1)), 
+            vjust = -0.5, color = "grey50", size = 3.5) +
+  scale_fill_manual(values = c("Fishing" = "#E57717", "Fishing ban" = "#F8D6BA")) +
   labs(
-    y = "N.º Vessels in fishing area"
+    y = "Fishing effort (boats / km² of digitized fishing area)"
   ) +
-  # theme
   theme_bw() +
-  theme(axis.title.x = element_blank(),
-        axis.title.y = element_text(family = "Arial", size = 12, colour = "black",
-                                    margin = margin(r = 15)),
-        # axis labels
-        axis.text.y = element_text(size = 12, family = "Arial"),
-        axis.text.x = element_text(size = 12, family = "Arial",
-                                   angle = 90, hjust = 1, vjust = 0.5),
-        axis.ticks = element_line(size = 0.4),
-        axis.ticks.length = unit(5, "pt"),  # negative length -> ticks inside the plot 
-        # panel
-        panel.grid.major.y = element_line(color = "grey95", size = 0.5),  # Líneas horizontales
-        panel.grid.minor.y = element_blank(),  # Sin líneas menores
-        panel.grid.major.x = element_blank(),  # Sin líneas verticales
-        panel.border = element_rect(color = "black", fill = NA, size = 1.2),
-        panel.background = element_blank(),
-        # panel.grid = element_blank(),
-        # leyenda
-        legend.position = c(0, 1),  # Ubicar leyenda en la esquina superior izquierda
-        legend.justification = c(0, 1),  # Asegura que esté anclada a la esquina
-        legend.title = element_blank(),  # Eliminar el título de la leyenda
-        legend.background = element_blank(),
-        legend.text = element_text(size = 11, family = "Arial"),
-        legend.key.size = unit(0.7, "cm"),  # Ajustar tamaño de las claves de la leyenda
-        legend.direction = "horizontal" 
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(family = "Arial", size = 12, colour = "black",
+                                margin = margin(r = 15)),
+    axis.text.y = element_text(size = 12, family = "Arial"),
+    axis.text.x = element_text(size = 12, family = "Arial",
+                               angle = 90, hjust = 1, vjust = 0.5),
+    axis.ticks = element_line(size = 0.4),
+    axis.ticks.length = unit(5, "pt"),
+    panel.grid.major.y = element_line(color = "grey95", size = 0.5),
+    panel.grid.minor.y = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1.2),
+    panel.background = element_blank(),
+    legend.position = c(0, 1),
+    legend.justification = c(0, 1),
+    legend.title = element_blank(),
+    legend.background = element_blank(),
+    legend.text = element_text(size = 11, family = "Arial"),
+    legend.key.size = unit(0.7, "cm"),
+    legend.direction = "horizontal"
   )
 
 p7
 
-
-
-
 # save plot
-p_png <- "fig/supfig_barplot.png"
-p_svg <- "fig/supfig_barplot.svg"
+p_png <- "fig/supfig_barplot_v2.png"
+p_svg <- "fig/supfig_barplot_v2.svg"
 ggsave(p_png, p7, width=23, height=16, units="cm", dpi=350, bg="white")
 ggsave(p_svg, p7, width=23, height=16, units="cm", dpi=350, bg="white")
 
@@ -1154,6 +1263,326 @@ p7 <- ggplot() +
   )
 
 p7
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+
+# Figure 4 of mains text using densities per digitized / imaged area
+
+# load data
+scenes <- st_read("data/output/scene_data.gpkg")
+
+# % digitized and imaged
+ais_f <- read.csv("data/output/fishing_effort/ais_fishing_effort_data.csv")
+sat_f <- read.csv("data/output/fishing_effort/satellite_fishing_effort_data.csv")
+
+# rename column
+sat_f <- sat_f %>% rename(date = timestamp)
+
+# read sa and fa for areas
+sa <- st_read("data/gis/study_area/study_area_raor.gpkg")
+sa_area <- as.numeric(st_area(sa)/1e6) # km2
+
+
+
+
+# 4.1 ) Prepare data --------------------------------------
+# 4.1.1) Satellite ----------
+sat <- read.csv("data/output/shipProc.csv", sep = ";")
+
+# Filtrar registros duplicados
+sat <- sat %>% filter(duplicated == FALSE)
+
+# Convertir fecha/hora y extraer año y fecha (sin hora)
+sat$acquired <- as.POSIXct(sat$acquired, format = "%d/%m/%Y %H:%M")
+sat$year <- lubridate::year(sat$acquired)
+sat$date <- as.Date(sat$acquired)
+
+sat_f$date <- as.Date(sat_f$date)
+
+# Contar registros por fecha
+sat <- sat %>%
+  group_by(date) %>%
+  summarise(num_registros = n())
+
+# Unir con área digitizada para ese día (igual que en ais)
+sat <- left_join(sat, sat_f[, c("date", "digitized_sa_cover")], by = "date")
+
+# calculate vessel densities by imaged / digitized area
+# Calcular área imaged y densidad de barcos por km2
+sat <- sat %>%
+  mutate(
+    sa_area_imaged = (digitized_sa_cover / 100) * sa_area,
+    vessels_dens_sa_km2_digitized = num_registros / sa_area_imaged
+  )
+
+# add week day
+Sys.setlocale("LC_TIME", "English")
+sat$wday <- lubridate::wday(sat$date, label = TRUE, abbr = FALSE)
+sat$year <- lubridate::year(sat$date)
+
+# Calcular densidades medias por día de la semana y año
+# sat <- sat %>%
+#   group_by(year, wday) %>%
+#   summarise(vessels_dens_sa_km2_digitized = mean(vessels_density_sa, na.rm = TRUE))
+
+# Asignar número al día de la semana
+sat <- sat %>%
+  mutate(wday_num = case_when(
+    wday == "Monday" ~ 1,
+    wday == "Tuesday" ~ 2,
+    wday == "Wednesday" ~ 3,
+    wday == "Thursday" ~ 4,
+    wday == "Friday" ~ 5,
+    wday == "Saturday" ~ 6,
+    wday == "Sunday" ~ 7
+  ))
+
+# Convertir a numeric
+sat$wday_num <- as.numeric(sat$wday_num)
+sat$vessels_dens_sa_km2_digitized <- as.numeric(sat$vessels_dens_sa_km2_digitized)
+
+
+
+
+
+
+# 4.1.2) AIS data ---------------
+
+# note that AIS recrods have been interpoltated in the same area digitized per scene
+ais <- read.csv("data/output/ais_scenes_interpolated.csv")
+
+# filter potential AIS position in the same timestamp
+ais <- ais %>%
+  distinct(mmsi, timestamp, .keep_all = TRUE)
+
+# # year
+# ais$timestamp <- as.POSIXct(ais$timestamp)
+# ais$year <- year(ais$timestamp)
+
+# create date field
+ais$date <- as.Date(ais$timestamp)
+
+# records by date to calculate densities of vessel/km2 of study area digitized
+ais <- ais %>%
+  group_by(date) %>%
+  summarise(num_registros = n())
+
+
+# add information about % digitized / imaged area of this day (calculate for fishing effort)
+ais <- left_join(ais, sat_f[, c("date", "digitized_sa_cover")], by = "date")
+
+
+# calculate number of vessel per km2 of digitized area from total of study area
+ais <- ais %>%
+  mutate(
+    sa_area_imaged = (digitized_sa_cover / 100) * sa_area,
+    vessels_dens_sa_km2_digitized = num_registros / sa_area_imaged
+  )
+
+  
+# day week (english)
+Sys.setlocale("LC_TIME", "English")
+ais$wday <- lubridate::wday(ais$date, label = TRUE, abbr = FALSE)
+ais$year <- lubridate::year(ais$date)
+
+# mean densities vessel per km2 digitized area records by weekday and year
+# ais <- ais %>%
+#   group_by(year, wday) %>%
+#   summarise(vessels_dens_sa_km2_digitized = mean(vessels_density_sa, na.rm = TRUE))
+
+
+# numeric sequentation of weekdays
+ais <- ais %>%
+  mutate(wday_num = case_when(
+    wday == "Monday" ~ 1,
+    wday == "Tuesday" ~ 2,
+    wday == "Wednesday" ~ 3,
+    wday == "Thursday" ~ 4,
+    wday == "Friday" ~ 5,
+    wday == "Saturday" ~ 6,
+    wday == "Sunday" ~ 7
+  ))
+
+# as numeric
+ais$wday_num <- as.numeric(ais$wday_num)
+ais$vessels_dens_sa_km2_digitized <- as.numeric(ais$vessels_dens_sa_km2_digitized)
+
+
+days <-  c("Monday", "Tuesday","Wednesday", "Thursday", "Friday","Saturday","Sunday")
+
+
+# 4.2 Plot
+p4a <- ggplot() +
+  # Satellite
+  geom_point(data = sat, aes(x = wday_num, y = vessels_dens_sa_km2_digitized), color = "#FF8828", size = 2, alpha = 0.35) +
+  geom_smooth(data = sat, aes(x = wday_num, y = vessels_dens_sa_km2_digitized), size = 1.15, span = 0.4, 
+              color = "darkorange4", se = F, alpha = 0.1) +
+  geom_smooth(data = sat, aes(x = wday_num, y = vessels_dens_sa_km2_digitized), size = 0.75, span = 0.4, 
+              color = "#FF8828", fill = "#F8D6BA") +
+  # AIS
+  geom_point(data = ais, aes(x = wday_num, y = vessels_dens_sa_km2_digitized), color = "deepskyblue3", size = 2, alpha = 0.35) +
+  geom_smooth(data = ais, aes(x = wday_num, y = vessels_dens_sa_km2_digitized), size = 1.15, 
+              color = "deepskyblue4", se = F, alpha = 0.1) +
+  geom_smooth(data = ais, aes(x = wday_num, y = vessels_dens_sa_km2_digitized), size = 0.75, 
+              color = "deepskyblue3", fill = "lightblue3") +
+  
+  # labels sequential days created
+  scale_x_continuous(breaks = 1:length(days), labels = days) +
+  # label text
+  ylab("Boat density (N.º of boats / km² of digitized area)") + xlab("") +
+  # axys limits
+  coord_cartesian(ylim = c(-0.5, 10)) +
+  # theme
+  theme_bw() +
+  theme(axis.title.x = element_text(family = "Arial", size = 9, colour = "grey35"),
+        axis.title.y = element_text(family = "Arial", size = 9, colour = "grey35"),
+        # axis labels
+        axis.text.y = element_text(size = 9, family = "Arial"),
+        axis.text.x = element_text(size = 8, family = "Arial",
+                                   angle = 90, hjust = 1, vjust = 0.5),
+        axis.ticks = element_line(size = 0.4),
+        axis.ticks.length = unit(-5, "pt"),  # negative lenght -> ticks inside the plot 
+        # panel
+        panel.border = element_rect(color = "black", fill = NA, size = 1),
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+  )
+
+p4a
+
+# save plot
+p_png <- "fig/fig4_a.png"
+p_svg <- "fig/fig4_a.svg"
+ggsave(p_png, p4a, width=9, height=10, units="cm", dpi=350, bg="white")
+ggsave(p_svg, p4a, width=9, height=10, units="cm", dpi=350, bg="white")
+
+
+
+
+
+
+
+
+
+
+# ----------------------------------------------------------------------------
+# 2) Mean number of vessel per day by method (AIS, Satellite)
+# Create days (use one year as a model)
+start_date <- as.Date("2023-08-25")
+end_date <- as.Date("2023-09-20")
+days <- seq(from = start_date, to = end_date, by = "day")
+days <- format(days, "%m-%d")
+
+
+# para satellite
+sat_f <- sat_f %>%
+  mutate(numeracion_secuencial = match(day, days))
+
+# para AIS
+ais_f <- ais_f %>%
+  mutate(numeracion_secuencial = match(day, days))
+
+
+# -----------------------------------------------------------------------------
+# Plot temporal de densidad de barcos por método (AIS, Satellite)
+p4_b <- ggplot() +
+  # Satellite
+  geom_point(data = sat_f, aes(x = numeracion_secuencial, y = ship_dens_km2_fa_imaged),
+             color = "#FF8828", size = 2, alpha = 0.35) +
+  geom_smooth(data = sat_f, aes(x = numeracion_secuencial, y = ship_dens_km2_fa_imaged),
+              size = 1.15, span = 0.11, color = "darkorange4", se = FALSE, alpha = 0.1) +
+  geom_smooth(data = sat_f, aes(x = numeracion_secuencial, y = ship_dens_km2_fa_imaged),
+              size = 0.75, span = 0.11, color = "#FF8828", fill = "#F8D6BA") +
+  
+  # AIS
+  geom_point(data = ais_f, aes(x = numeracion_secuencial, y = ship_dens_km2_fa_imaged),
+             color = "deepskyblue3", size = 2, alpha = 0.35) +
+  geom_smooth(data = ais_f, aes(x = numeracion_secuencial, y = ship_dens_km2_fa_imaged),
+              size = 1.15, span = 0.11, color = "deepskyblue4", se = FALSE, alpha = 0.1) +
+  geom_smooth(data = ais_f, aes(x = numeracion_secuencial, y = ship_dens_km2_fa_imaged),
+              size = 0.75, span = 0.11, color = "deepskyblue3", fill = "lightblue3") +
+  
+  # fishing time restriction
+  geom_vline(xintercept = 8, linetype = "dashed", color = "grey40", size = 0.35, alpha = 0.45) +
+  
+  # labels días
+  scale_x_continuous(breaks = 1:length(days), labels = days) +
+  # coord
+  coord_cartesian(ylim = c(-2.5, 12.5)) +
+  # etiquetas
+  ylab("Fishing effort (boats / km² of digitized fishing area)") + xlab("") +
+  
+  theme_bw() +
+  theme(
+    axis.title.x = element_text(family = "Arial", size = 9, colour = "grey35"),
+    axis.title.y = element_text(family = "Arial", size = 9, colour = "grey35"),
+    axis.text.y = element_text(size = 9, family = "Arial"),
+    axis.text.x = element_text(size = 6.5, family = "Arial", angle = 90, hjust = 1, vjust = 0.5),
+    axis.ticks = element_line(size = 0.4),
+    axis.ticks.length = unit(-5, "pt"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    panel.background = element_blank(),
+    panel.grid = element_blank(),
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.justification = "center",
+    legend.key.width = unit(11, "pt"),
+    legend.key.height = unit(5, "pt"),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 6.5)
+  )
+
+p4_b
+
+
+# save plot
+p_png <- "fig/fig4_b.png"
+p_svg <- "fig/fig4_b.svg"
+ggsave(p_png, p4_b, width=16, height=10, units="cm", dpi=350, bg="white")
+ggsave(p_svg, p4_b, width=16, height=10, units="cm", dpi=350, bg="white")
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

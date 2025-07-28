@@ -300,6 +300,10 @@ pairs <- pairs %>% filter(dist <= 45)
 pairs <- pairs %>% filter(ais_length <= 100)
 pairs <- pairs %>% filter(sat_length <= 100)
 
+
+summary(pairs$dist)
+hist(pairs$dist)
+
 # statistics models 
 model <- lm(sat_length ~ ais_length, data = pairs) # Modelo de regresión lineal
 
@@ -311,7 +315,7 @@ r_squared <- round(summary(model)$r.squared, 2)
 
 
 # scatter plot and regression line
-p <- ggplot(pairs, aes(x = ais_length, y = sat_length)) +
+p1 <- ggplot(pairs, aes(x = ais_length, y = sat_length)) +
   
     # points
     geom_point(size = 2.3, color = "darkolivegreen3", alpha = 0.35, ) + 
@@ -329,17 +333,27 @@ p <- ggplot(pairs, aes(x = ais_length, y = sat_length)) +
     annotate("text", x = 33, y = 10, 
                  label = paste("y =", intercept, "+", slope, "x\nR² =", r_squared),
                  # label = paste("R² =", r_squared), 
-                 color = "grey40", size = 3.25, hjust = 0) + 
+                 color = "grey40", size = 3.25, hjust = 0) +
+  
+    # a)
+    annotate("text",
+             x = 10,
+             y = Inf,
+             label = "a)",
+             hjust = 1.2, vjust = 2.5,
+             size = 5) +
+  
+  
     # labels
-    labs(x = "AIS lenght (m)", y = "Satellite lenght (m)", color = "grey15") +
+    labs(x = "AIS length (m)", y = "Satellite length (m)", color = "grey15") +
         
     # theme
     theme_bw() +
     theme(axis.title.x = element_text(family = "Arial", size = 9, colour = "grey35"),
         axis.title.y = element_text(family = "Arial", size = 9, colour = "grey35"),
         # axis labels
-        axis.text.y = element_text(size = 10, family = "Arial"),
-        axis.text.x = element_text(size = 10, family = "Arial"),
+        axis.text.y = element_text(size = 9, family = "Arial"),
+        axis.text.x = element_text(size = 9, family = "Arial"),
         axis.ticks = element_line(size = 0.6),
         axis.ticks.length = unit(-6, "pt"),  # negative lenght -> ticks inside the plot 
         # panel
@@ -350,12 +364,60 @@ p <- ggplot(pairs, aes(x = ais_length, y = sat_length)) +
         legend.position = "None")
 
 
+p1
+
+# p_png <- "fig/fig4_1.png"
+# p_svg <- "fig/fig4_1.svg"
+# ggsave(p_png, p1, width = 10, height = 12, units="cm", dpi=350, bg="white")
+# ggsave(p_svg, p1, width = 10, height = 12, units="cm", dpi=350, bg="white")
+
+
+
+
+# additional figure based on reviewers comments
+
+
+p2 <- ggplot(data = pairs, aes(x = dist)) +
+  geom_histogram(binwidth = 2, fill = "#ADC062", color = "white") +
+  
+  geom_vline(aes(xintercept = median(dist, na.rm = TRUE)),
+             color = "grey20", linetype = "dashed", size = 0.5) +
+  
+  annotate("text",
+           x = min(pairs$dist, na.rm = TRUE),
+           y = Inf,
+           label = "b)",
+           hjust = 0, vjust = 2.5,
+           size = 5) +
+  
+  ylab("Number of AIS-Satellite pairs") + 
+  xlab("Distance between AIS and Satellite positions (m)") +
+  
+  theme_bw() +
+  theme(
+    axis.title.x = element_text(family = "Arial", size = 9, colour = "grey35"),
+    axis.title.y = element_text(family = "Arial", size = 9, colour = "grey35"),
+    axis.text.y = element_text(size = 9, family = "Arial"),
+    axis.text.x = element_text(size = 9, family = "Arial"),
+    axis.ticks = element_line(size = 0.4),
+    axis.ticks.length = unit(-5, "pt"),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    panel.background = element_blank(),
+    panel.grid = element_blank()
+  )
+
+p2
+
+
+
+
+
+# comine plots
+p <- grid.arrange(p1, p2, nrow = 1)
 p
 
 
-
-
-p_png <- "fig/fig4_1.png"
-p_svg <- "fig/fig4_1.svg"
-ggsave(p_png, p, width = 10, height = 12, units="cm", dpi=350, bg="white")
-ggsave(p_svg, p, width = 10, height = 12, units="cm", dpi=350, bg="white")
+p_png <- "data/output/fig/sup_fig4_1.png"
+p_svg <- "data/output/fig/sup_fig4_1.svg"
+ggsave(p_png, p, width = 20, height = 12, units="cm", dpi=350, bg="white")
+ggsave(p_svg, p, width = 22, height = 12, units="cm", dpi=350, bg="white")

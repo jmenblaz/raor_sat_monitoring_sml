@@ -38,6 +38,9 @@ r <- raster("data/output/raster/01_num_scene_coverage.tif")
 r <- as.data.frame(r, xy=TRUE)
 colnames(r) <- c("x", "y", "value")
 
+# add fishing area (following revier' comment - fish and fisheries)
+fa <- read_sf("data/gis/fa/fishing_area.gpkg")
+
 # coloRamp package 
 colRamp <- colorRampPalette(c("#ffffff", "#ffe9d6", "#ffd3ae", "#ffbc85", "#ffa65c", "#CD6600"))(50)
 
@@ -52,6 +55,8 @@ p1 <- ggplot() +
   geom_sf(data = land, fill = "grey25", colour = "black", size = 3) +
   # study area
   geom_sf(data = sa, fill = NA, colour = "grey25", size = 6) +
+  #fishing area
+  geom_sf(data = fa, fill = NA, colour = "grey15", alpha = 0.05, linewidth = 0.4) +
   # spatial extension
   coord_sf(xlim = xl, ylim = yl, expand = FALSE) +
   # label scale

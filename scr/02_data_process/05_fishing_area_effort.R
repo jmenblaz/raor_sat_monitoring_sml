@@ -123,7 +123,7 @@ df <- df %>%
 
 # 1.2) AIS data ----------------------------------------------------------
 method <- "ais"
-df <- read.csv("data/output/ais_scenes_interpolated.csv")  # 4847 total
+df <- read.csv("data/output/ais_scenes_interpolated.csv")  # 386 total
 # create day variable in data
 df$day <- format(as.Date(df$timestamp), "%Y-%m-%d")
 
@@ -237,8 +237,8 @@ for (y in 1:length(years)) {
 }
 
 Sys.time() - t  
-# Note: X min for Satellite 12 min
-# Note: X min for AIS data  15 min
+# Note:  min for Satellite 12 min
+# Note:  min for AIS data  15 min
 
 # specify method/instrument
 fishing_effort$method <- method

@@ -11,7 +11,7 @@ Javier Menéndez-Blázquez <a href="https://orcid.org/0000-0002-1882-7896"><img 
 ### Repository structure
 
 | Folder | Description |
-|------------------------------------|------------------------------------|
+|----|----|
 | *fun* | custom functions used into different scripts in `scr` folder |
 | *scr* | R scripts used to performance the data process, analysis and visualization of the research study. |
 
